@@ -1,7 +1,7 @@
 // Loads one GitLab account's lists in one go, for the top bar (extension.js) and the window
 // (window/data.js), through accountStore.js. The result uses the same field names as
 // GitHub's, so views and counts can treat both alike.
-import {isCancelled} from './github.js';
+import {isCancelled} from './cancellation.js';
 import {mergeItems} from './model.js';
 
 /**

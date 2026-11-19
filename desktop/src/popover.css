@@ -1,0 +1,153 @@
+/* The menu-bar popover, in Source Glance's own look: the top bar's blue, light and dark. */
+:root {
+  --accent: #3584e4;
+  --accent-strong: #1c71d8;
+  --bg: #fafafa;
+  --row-hover: rgb(0 0 0 / 0.06);
+  --text: #1f2328;
+  --muted: #59636e;
+  --border: #d1d9e0;
+  color-scheme: light dark;
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #62a0ea;
+    --accent-strong: #78aeed;
+    --bg: #242424;
+    --row-hover: rgb(255 255 255 / 0.08);
+    --text: #e6edf3;
+    --muted: #9198a1;
+    --border: #3d444d;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+body { border-top: 3px solid var(--accent); }
+
+.menu, .panel-layer { padding: 6px 0; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+.row:hover:not(:disabled), .row:focus-visible { background: var(--row-hover); outline: none; }
+.row:disabled { opacity: 0.5; }
+.row .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+}
+
+.icon.blank { background: none; }
+
+.chevron { flex: none; width: 12px; color: var(--muted); }
+.count { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.toggle.account { font-weight: 600; }
+.toggle.repo { color: var(--muted); font-size: 12px; }
+.item { padding-left: 24px; }
+.item-actions { padding: 2px 0 4px 48px; }
+.row.sub { padding: 4px 14px; color: var(--accent-strong); }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 14px 2px;
+  font-weight: 600;
+}
+
+.label-filter { font: inherit; font-size: 12px; max-width: 55%; }
+
+.message, .header { margin: 6px 14px; color: var(--muted); }
+.header { color: var(--text); font-weight: 600; }
+.status-heading { margin: 6px 14px 0 24px; font-size: 12px; color: var(--muted); }
+.board { font-weight: 600; }
+.footer { color: var(--muted); }
+
+hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
+
+.switch { justify-content: space-between; }
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px 8px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.tab[aria-selected=true] { background: var(--accent); color: #fff; }
+
+.badge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent-strong);
+  color: #fff;
+  font-size: 11px;
+  text-align: center;
+}
+
+.tab[aria-selected=true] .badge { background: rgb(255 255 255 / 0.25); }
+
+.panel { display: grid; gap: 8px; padding: 6px 14px 10px; }
+.panel h2 { margin: 0; font-size: 14px; }
+.panel-item { margin: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel textarea { font: inherit; width: 100%; resize: vertical; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: inherit; }
+.panel-buttons { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.panel-buttons button { font: inherit; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: none; color: inherit; }
+.panel-buttons .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.picker { max-height: 260px; overflow-y: auto; display: grid; gap: 2px; }
+.pick { display: flex; gap: 8px; align-items: center; padding: 2px 0; }
+
+.toast {
+  margin: 0;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}

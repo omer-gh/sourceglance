@@ -6,6 +6,7 @@ import Soup from 'gi://Soup?version=3.0';
 
 import {GITHUB_COM, githubUrls, isSafeAccountUrl, parseGhesMeta} from './accounts.js';
 import {InsecureHostError, Transport} from './transport.js';
+import {isCancelled, setCancelledCheck} from './cancellation.js';
 import {
     DEVICE_GRANT_TYPE,
     buildSearchPath,
@@ -76,9 +77,9 @@ export class GitHubError extends Error {
     }
 }
 
-export function isCancelled(error) {
-    return error instanceof GLib.Error && error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED);
-}
+// Cancellation is a Gio CANCELLED error here; the pure loaders ask through cancellation.js.
+setCancelledCheck(error => error instanceof GLib.Error && error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED));
+export {isCancelled};
 
 /** A transport failure as the GitHubError the callers expect. */
 export function transportError(error) {

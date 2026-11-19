@@ -1,6 +1,6 @@
 # 0006. Build the Windows and macOS apps with Tauri 2, sharing the pure core
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-11-19, with the `desktop/` scaffold in #10)
 - **Date:** 2026-11-16
 
 ## Context

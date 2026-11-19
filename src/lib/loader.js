@@ -1,6 +1,6 @@
 // Loads everything the lists show, in one go, for the window (window/data.js). Same GitHub
 // calls as the top bar's refresh in extension.js; no GNOME Shell imports.
-import {isCancelled} from './github.js';
+import {isCancelled} from './cancellation.js';
 import {mergeItems} from './model.js';
 
 /** A failure that only empties an optional part (closed counts, boards) instead of the lists. */
