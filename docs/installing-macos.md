@@ -73,6 +73,22 @@ Click **Accounts**, then add GitHub or GitLab:
 Sign-ins are stored only in your login Keychain (as `io.github.omer-gh.sourceglance`), one
 item per account, and never shown to the app's window.
 
+## Can't see it in the menu bar?
+
+By default Source Glance adds four items to the menu bar, like the Ubuntu top bar: Source
+Glance, Issues, Pull requests and Projects, each with its count in a blue pill. On a
+MacBook with a notch, or with lots of menu-bar apps, macOS hides the items that don't fit,
+and newer items go first.
+
+- **Use one item instead:** open Source Glance from Spotlight (⌘ Space), click
+  **Settings**, and set **Layout** to **Grouped**. You get one item with all the counts,
+  and its popover has a tab per list. You can also untick lists you don't need under
+  **Lists**.
+- **Show hidden items (macOS 26 Tahoe):** open **System Settings → Menu Bar** and turn on
+  the Source Glance items you want to keep.
+- **Rearrange items:** hold ⌘ and drag a menu-bar item to move it, so the ones you use most
+  sit closer to the right.
+
 ## Removing it
 
 Open Source Glance, click **Settings**, then **Uninstall Source Glance…**. It turns off

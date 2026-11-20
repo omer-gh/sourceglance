@@ -13,9 +13,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   [#10](https://github.com/omer-gh/sourceglance/issues/10)): a menu-bar app built with Tauri
   from the same `src/lib` code as the extension. Sign in to github.com, gitlab.com or a
   self-hosted instance (browser sign-in or a personal access token); sign-ins are kept in
-  the login Keychain. The menu bar shows your Issues, Pull requests and Projects, either as
-  one item with tabs (the default) or as separate items, with the same lists, label filter
-  and item actions as the Ubuntu top bar. Optional Dock icon and start at login.
+  the login Keychain. The menu bar shows your Issues, Pull requests and Projects, each with
+  its count in a blue pill, as separate items (the default, like Ubuntu) or as one item with
+  a tab per list, which suits MacBooks with a notch. The popovers have the same lists, label
+  filter and item actions as the Ubuntu top bar. Optional Dock icon and start at login.
+  Reaching a server on your local network asks for macOS's Local Network permission, and
+  says how to turn it on if it's off.
 - **A Setup wizard for macOS:** `Source-Glance-X.Y.Z.pkg` opens Apple's Installer and installs
   Source Glance for you only, in `~/Applications`, with no administrator password and no
   scripts. **Settings → Uninstall Source Glance** removes it again, and can also remove your

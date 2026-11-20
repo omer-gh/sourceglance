@@ -5,7 +5,7 @@ import {accountForItem} from '@core/accounts.js';
 import {assigneeChoices, itemKey, itemRef, labelChoices, moveStatusRequest} from '@core/model.js';
 import {assigneeRequests, closeReasons, closeRequests, commentRequests, labelRequests, reopenRequests} from '@core/requests.js';
 import {ApiError} from './platform/http.js';
-import {element} from './views.js';
+import {LOCAL_NETWORK_TEXT, element} from './views.js';
 
 // Repository labels and assignable users change rarely; fetch them again after this long.
 const LIST_CACHE_MS = 5 * 60 * 1000;
@@ -32,6 +32,8 @@ export function actionErrorText(error, item = null) {
         return 'The account this came from is no longer signed in.';
     case 'insecure':
         return 'This instance uses plain http:// and isn’t on your local network now, so Source Glance won’t send your sign-in to it.';
+    case 'local-network':
+        return LOCAL_NETWORK_TEXT;
     case 'forbidden':
         return forbiddenText(item);
     case 'not-found':

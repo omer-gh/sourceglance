@@ -28,7 +28,7 @@ import {
     uninstall,
 } from './platform/tauri.js';
 import {Store} from './store.js';
-import {element, timeAgo} from './views.js';
+import {LOCAL_NETWORK_TEXT, element, errorText, timeAgo} from './views.js';
 
 const factory = {
     github: (version, base) => new GitHubClient(version, base),
@@ -86,7 +86,7 @@ class App {
         $('platform').addEventListener('change', () => this._methodChanged());
         $('add-account').addEventListener('submit', event => {
             event.preventDefault();
-            this.addAccount().catch(e => this._signInMessage(`Sign-in failed: ${e.message ?? e}`));
+            this.addAccount().catch(e => this._signInFailed(e));
         });
         $('cancel-sign-in').addEventListener('click', () => this.signIn?.abort());
 
@@ -139,7 +139,7 @@ class App {
     }
 
     async _renderSettings() {
-        $('layout').value = this.settings.get('layout', 'tabs');
+        $('layout').value = this.settings.get('layout', 'separate');
         const buttons = this.settings.get('toolbar-buttons', ['issues', 'prs', 'projects']);
         for (const box of document.querySelectorAll('input[name=button]'))
             box.checked = buttons.includes(box.value);
@@ -157,6 +157,15 @@ class App {
 
     _accountsMessage(text) {
         $('accounts-message').textContent = text;
+    }
+
+    _signInFailed(e) {
+        if (e?.name === 'AbortError')
+            this._signInMessage('Sign-in cancelled.');
+        else if (e?.kind === 'local-network')
+            this._signInMessage(LOCAL_NETWORK_TEXT);
+        else
+            this._signInMessage(`Sign-in failed: ${e?.kind ?? e?.message ?? e}`);
     }
 
     _signInMessage(text) {
@@ -214,7 +223,7 @@ class App {
             if (source.status === 'signed-out')
                 return element('section', {className: 'source'}, [heading, element('p', {className: 'hint', text: 'Signed out. Sign in again under Accounts.'})]);
             if (source.status === 'error' && !source.updatedAt)
-                return element('section', {className: 'source'}, [heading, element('p', {className: 'hint', text: `Couldn’t load: ${source.error?.kind ?? 'unknown'}`})]);
+                return element('section', {className: 'source'}, [heading, element('p', {className: 'hint', text: errorText(source.error, this.state.intervalMinutes)})]);
             if (this.current === 'projects')
                 return element('section', {className: 'source'}, [heading, ...this._boards(source)]);
             const groups = this.current === 'issues' ? source.groups : source.prGroups;
@@ -296,7 +305,7 @@ class App {
             }, reference);
             this._signInMessage(`Signed in: ${accountTitle(account)}`);
         } catch (e) {
-            this._signInMessage(e?.name === 'AbortError' ? 'Sign-in cancelled.' : `Sign-in failed: ${e.kind ?? e.message ?? e}`);
+            this._signInFailed(e);
         } finally {
             this.signIn = null;
             $('cancel-sign-in').hidden = true;

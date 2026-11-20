@@ -3,6 +3,7 @@
 //! per list). Clicking an item opens the popover window under it; right-clicking shows a
 //! small menu with Open, Refresh and Quit.
 
+use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -45,7 +46,14 @@ pub struct TrayState {
     pub projects: String,
     /// Shown on the Source Glance item when a list didn't load (the red "!" on Ubuntu).
     pub problem: bool,
+    /// Each item's image as PNG (its icon and the count in a blue pill), drawn by the
+    /// popover. Without one, the item shows its plain icon and the count as text.
+    #[serde(default)]
+    pub images: HashMap<String, Vec<u8>>,
 }
+
+/// Larger images are ignored.
+const MAX_IMAGE: usize = 256 * 1024;
 
 impl TrayState {
     fn count(&self, id: &str) -> &str {
@@ -69,6 +77,26 @@ impl TrayState {
             );
         }
         items
+    }
+
+    /// What the item says to VoiceOver and in its tooltip, e.g. "Issues: 12".
+    fn spoken(&self, id: &str) -> String {
+        if id == APP {
+            let mut text = tooltip(APP).to_string();
+            if self.problem {
+                text.push_str(": a list didn't load");
+            }
+            if self.layout == "tabs" {
+                for list in LISTS
+                    .iter()
+                    .filter(|l| self.buttons.iter().any(|b| b == *l))
+                {
+                    text.push_str(&format!(", {}: {}", tooltip(list), self.title(list)));
+                }
+            }
+            return text;
+        }
+        format!("{}: {}", tooltip(id), self.title(id))
     }
 
     /// The title next to an item's icon. In "tabs" layout the one item shows every count.
@@ -111,7 +139,9 @@ impl Tray {
     pub fn update<R: Runtime>(&self, app: &AppHandle<R>, next: TrayState) -> tauri::Result<()> {
         let wanted = next.items();
         let mut shown = self.shown.lock().unwrap();
-        if *shown != wanted {
+        // New items start with their plain icon, so their images must be set again.
+        let rebuilt = *shown != wanted;
+        if rebuilt {
             for id in shown.iter() {
                 app.remove_tray_by_id(id.as_str());
             }
@@ -121,10 +151,34 @@ impl Tray {
             }
             *shown = wanted.clone();
         }
+        let previous = self.state.lock().unwrap().images.clone();
         for id in &wanted {
-            if let Some(tray) = app.tray_by_id(id.as_str()) {
-                tray.set_title(Some(next.title(id)))?;
+            let Some(tray) = app.tray_by_id(id.as_str()) else {
+                continue;
+            };
+            let image = next
+                .images
+                .get(id)
+                .filter(|bytes| bytes.len() <= MAX_IMAGE)
+                .and_then(|bytes| Image::from_bytes(bytes).ok());
+            match image {
+                Some(image) => {
+                    if rebuilt || previous.get(id) != next.images.get(id) {
+                        tray.set_icon(Some(image))?;
+                        tray.set_icon_as_template(false)?;
+                    }
+                    tray.set_title(None::<&str>)?;
+                }
+                None => {
+                    if !rebuilt && previous.contains_key(id) {
+                        tray.set_icon(Some(icon(id)))?;
+                        tray.set_icon_as_template(true)?;
+                    }
+                    tray.set_title(Some(next.title(id)))?;
+                }
             }
+            // VoiceOver reads the tooltip, as the count is in the image.
+            tray.set_tooltip(Some(next.spoken(id)))?;
         }
         *self.state.lock().unwrap() = next;
         Ok(())
@@ -271,6 +325,7 @@ mod tests {
             prs: "".into(),
             projects: "25+".into(),
             problem: false,
+            images: HashMap::new(),
         }
     }
 
@@ -281,6 +336,7 @@ mod tests {
         assert_eq!(s.title("issues"), "12");
         assert_eq!(s.title("prs"), "0");
         assert_eq!(s.title("app"), "");
+        assert_eq!(s.spoken("issues"), "Issues: 12");
     }
 
     #[test]
@@ -288,8 +344,16 @@ mod tests {
         let mut s = state("tabs");
         assert_eq!(s.items(), vec!["app"]);
         assert_eq!(s.title("app"), "12 · 0 · 25+");
+        assert_eq!(
+            s.spoken("app"),
+            "Source Glance, Issues: 12, Pull requests: 0, Projects: 25+"
+        );
         s.problem = true;
         s.buttons = vec!["issues".into()];
         assert_eq!(s.title("app"), "!12");
+        assert_eq!(
+            s.spoken("app"),
+            "Source Glance: a list didn't load, Issues: 12"
+        );
     }
 }

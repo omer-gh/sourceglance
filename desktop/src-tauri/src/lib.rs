@@ -571,11 +571,20 @@ pub fn run() {
                     let _ = handle.hide();
                 });
             }
-            // The menu bar shows up right away, before the first refresh fills in the counts.
+            // The menu bar shows up right away, in the saved layout (Separate by default, as on
+            // Ubuntu), before the first refresh fills in the counts.
+            let layout = app
+                .state::<AppState>()
+                .settings
+                .all()
+                .get("layout")
+                .and_then(Value::as_str)
+                .unwrap_or("separate")
+                .to_string();
             app.state::<Tray>().update(
                 app.handle(),
                 TrayState {
-                    layout: "tabs".into(),
+                    layout,
                     buttons: tray::LISTS.map(String::from).to_vec(),
                     ..Default::default()
                 },

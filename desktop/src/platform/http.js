@@ -31,8 +31,8 @@ export class DeviceFlowError extends Error {
  * accounts' instances) is reported like a refused sign-in, so the user is sent to Accounts.
  */
 function netError(kind) {
-    if (kind === 'insecure')
-        return new ApiError({kind: 'insecure', status: 0, retryAt: null});
+    if (kind === 'insecure' || kind === 'local-network')
+        return new ApiError({kind, status: 0, retryAt: null});
     if (kind === 'not-allowed')
         return new ApiError({kind: 'forbidden', status: 0, retryAt: null});
     return new ApiError(classifyHttpError(0));

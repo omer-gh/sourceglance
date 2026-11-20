@@ -15,6 +15,7 @@ import {
     updateTray,
 } from './platform/tauri.js';
 import {Store} from './store.js';
+import {trayImages} from './trayImages.js';
 import {render, toolbarButtons} from './views.js';
 
 const $ = id => document.getElementById(id);
@@ -88,27 +89,53 @@ function show() {
     fit();
 }
 
-function trayState(state) {
-    return {
-        // macOS defaults to one item: separate items are the first hidden behind the notch.
-        layout: settings.get('layout', 'tabs'),
+/** The menu-bar items: their layout, counts and pill images. */
+async function trayState(state) {
+    const tray = {
+        // Separate items by default, as on Ubuntu. On a crowded menu bar (the notch), Grouped
+        // keeps it to one item.
+        layout: settings.get('layout', 'separate'),
         buttons: toolbarButtons(settings),
         issues: listBadge('issues', state),
         prs: listBadge('prs', state),
         projects: listBadge('projects', state),
         problem: Boolean(state.problem),
     };
+    try {
+        tray.images = await trayImages({
+            layout: tray.layout,
+            buttons: tray.buttons,
+            counts: {issues: tray.issues, prs: tray.prs, projects: tray.projects},
+            problem: tray.problem,
+        });
+    } catch (e) {
+        // Rust falls back to plain icons and text.
+        console.error('sourceglance: drawing the menu bar failed', e);
+    }
+    return tray;
 }
 
-store.connect(state => {
-    updateTray(trayState(state)).catch(e => console.error('sourceglance: menu bar update failed', e));
+// Updates run one at a time, newest last, so a slow drawing can't overwrite a newer state.
+let trayQueue = Promise.resolve();
+function refreshTray() {
+    trayQueue = trayQueue
+        .then(() => trayState(store.state))
+        .then(updateTray)
+        .catch(e => console.error('sourceglance: menu bar update failed', e));
+}
+
+store.connect(() => {
+    refreshTray();
     show();
 });
 
 settings.connect(key => {
     if (key === 'layout' || key === 'toolbar-buttons')
-        updateTray(trayState(store.state)).catch(e => console.error('sourceglance: menu bar update failed', e));
+        refreshTray();
 });
+
+// Redraw the icons in the new text colour when the menu bar turns light or dark.
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refreshTray);
 
 await listen('popover:show', async ({payload}) => {
     ui.page = payload;

@@ -40,6 +40,9 @@ pub enum NetError {
     NotAllowed,
     /// Plain http:// to an address that isn't on the local network.
     Insecure,
+    /// A local-network instance couldn't be reached: usually macOS's Local Network
+    /// permission is off for Source Glance.
+    LocalNetwork,
     /// No connection, DNS failure, TLS failure or timeout.
     Network,
     /// The response was too large.
@@ -53,6 +56,7 @@ impl std::fmt::Display for NetError {
         let text = match self {
             NetError::NotAllowed => "not-allowed",
             NetError::Insecure => "insecure",
+            NetError::LocalNetwork => "local-network",
             NetError::Network => "network",
             NetError::TooLarge => "too-large",
             NetError::Invalid => "invalid",
@@ -271,6 +275,20 @@ async fn client_for(
     builder.build().map_err(|_| NetError::Network)
 }
 
+/// "No route to host" or "Operation not permitted" while connecting: what macOS answers
+/// when the Local Network permission is off (or the server is down).
+fn is_unreachable(error: &reqwest::Error) -> bool {
+    let mut source: Option<&(dyn std::error::Error + 'static)> = Some(error);
+    while let Some(e) = source {
+        if let Some(io) = e.downcast_ref::<std::io::Error>() {
+            // EPERM and EHOSTUNREACH on macOS.
+            return matches!(io.raw_os_error(), Some(1) | Some(65));
+        }
+        source = e.source();
+    }
+    false
+}
+
 /// Checks and sends a request. `authorization` is the header value, if any.
 pub async fn send(
     instance: &Instance,
@@ -292,7 +310,13 @@ pub async fn send(
     if let Some(body) = &request.body {
         builder = builder.body(body.clone());
     }
-    let response = builder.send().await.map_err(|_| NetError::Network)?;
+    let response = builder.send().await.map_err(|e| {
+        if instance.is_plain_http() && is_unreachable(&e) {
+            NetError::LocalNetwork
+        } else {
+            NetError::Network
+        }
+    })?;
     let status = response.status().as_u16();
     let mut headers = HashMap::new();
     for (name, value) in response.headers() {

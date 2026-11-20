@@ -57,7 +57,7 @@ export class GitHubClient {
         try {
             return parseGhesMeta(await this._get('/meta', null, signal));
         } catch (e) {
-            if (e instanceof ApiError && e.kind !== 'network' && e.kind !== 'insecure' &&
+            if (e instanceof ApiError && e.kind !== 'network' && e.kind !== 'insecure' && e.kind !== 'local-network' &&
                 e.kind !== 'rate-limit' && e.kind !== 'server')
                 return null;
             throw e;

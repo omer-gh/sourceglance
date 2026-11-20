@@ -71,10 +71,15 @@ function clock(ms) {
     return new Date(ms).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 }
 
+/** macOS blocks local-network servers until the user allows it. */
+export const LOCAL_NETWORK_TEXT = 'Couldn’t reach this server on your local network. If it’s running, allow Source Glance in System Settings → Privacy & Security → Local Network.';
+
 export function errorText(error, intervalMinutes) {
     switch (error?.kind) {
     case 'insecure':
         return 'This instance uses plain http:// and isn’t on your local network now. Source Glance won’t send your sign-in to it.';
+    case 'local-network':
+        return LOCAL_NETWORK_TEXT;
     case 'auth':
         return 'Your sign-in was rejected. Sign in again in Settings.';
     case 'forbidden':
