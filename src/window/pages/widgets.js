@@ -255,7 +255,8 @@ function buildAddWidget(ctx, canvas, openCustom) {
     const tiles = new Gtk.FlowBox({selection_mode: Gtk.SelectionMode.NONE, column_spacing: 10, row_spacing: 10,
         min_children_per_line: 2, max_children_per_line: 4, homogeneous: true, margin_start: 12, margin_end: 12,
         margin_bottom: 12});
-    const revealer = new Gtk.Revealer({child: tiles, reveal_child: false});
+    const revealer = new Gtk.Revealer({child: tiles, reveal_child: false, transition_duration: 200,
+        transition_type: Gtk.RevealerTransitionType.SLIDE_DOWN});
     frame.append(revealer);
     const expand = open => {
         revealer.reveal_child = open;

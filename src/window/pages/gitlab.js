@@ -58,12 +58,18 @@ export function gitlabProvider({version, base = GITLAB_COM, probe = null}) {
         registerUrl: dotCom ? null : urls.newApp,
         unavailable: dotCom && !GITLAB_CLIENT_ID ? _('Not available in this build: the GitLab application isn’t configured.')
             : !deviceOffered ? _('This instance doesn’t offer browser sign-in for apps (GitLab 17.1 or later does).') : null,
+        works: [_('Every project you can view'), _('Comment, close, label and assign'), _('Grouping git submodules on its own')],
+        wont: dotCom ? [] : [_('Instances older than GitLab 17.1')],
     }, {
         id: 'pat', method: 'pat',
         title: _('Personal access token'),
         note: _('Every project you can view. Group and project access tokens reach only their own group or project, so they don’t suit Source Glance.'),
         tokenUrl: urls.newToken,
         tokenHint: _('Scope: api (or read_api to only read).'),
+        works: [_('Every project you can view'), _('Comment, close, label and assign, with the api scope'),
+            _('Grouping git submodules on its own')],
+        wont: [_('Changing anything with read_api: it only reads'),
+            _('Group and project access tokens: they reach only their own group or project')],
     }];
 
     return {

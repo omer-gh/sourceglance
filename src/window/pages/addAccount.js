@@ -44,6 +44,24 @@ function nextRow(title, subtitle, onActivate) {
     return row;
 }
 
+/** Small ticks and crosses under a sign-in method: what works with it and what won't. */
+function featureRow({works = [], wont = []}) {
+    const box = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, spacing: 3, margin_top: 4, margin_bottom: 10,
+        margin_start: 14, margin_end: 14});
+    const add = (iconName, cssClass, text) => {
+        const line = new Gtk.Box({spacing: 8});
+        line.append(new Gtk.Image({icon_name: iconName, css_classes: [cssClass], valign: Gtk.Align.START, pixel_size: 12,
+            margin_top: 2}));
+        line.append(new Gtk.Label({label: text, xalign: 0, wrap: true, hexpand: true, css_classes: ['caption']}));
+        box.append(line);
+    };
+    for (const text of works)
+        add('emblem-ok-symbolic', 'success', text);
+    for (const text of wont)
+        add('window-close-symbolic', 'error', text);
+    return new Adw.PreferencesRow({child: box, activatable: false, focusable: false});
+}
+
 function linkRow(window, title, subtitle, uri) {
     const row = new Adw.ActionRow({title, subtitle, activatable: true, use_markup: false});
     row.add_suffix(new Gtk.Image({icon_name: 'adw-external-link-symbolic'}));
@@ -78,9 +96,9 @@ function urlErrorText(error) {
 /**
  * Opens the dialog. `platform` and `base` given: github.com or gitlab.com start at the
  * sign-in methods; a self-hosted address starts at the check, filled in. Neither: the
- * self-hosted wizard from the start.
+ * self-hosted wizard from the start. `startWith: 'pat'` opens github.com at the token page.
  */
-export function openAddAccountDialog({window, settings, version, toast}, {platform = null, base = null} = {}) {
+export function openAddAccountDialog({window, settings, version, toast}, {platform = null, base = null, startWith = null} = {}) {
     const dialog = new Adw.Dialog({title: _('Add an account'), content_width: 520, content_height: 620});
     const nav = new Adw.NavigationView();
     dialog.set_child(nav);
@@ -219,6 +237,8 @@ export function openAddAccountDialog({window, settings, version, toast}, {platfo
             row.subtitle_lines = 0;
             row.sensitive = !method.unavailable;
             group.add(row);
+            if (method.works?.length || method.wont?.length)
+                group.add(featureRow(method));
         }
         const name = provider.platform === 'gitlab' ? 'GitLab' : 'GitHub';
         const title = provider.base === GITHUB_COM || provider.base === GITLAB_COM
@@ -327,8 +347,14 @@ export function openAddAccountDialog({window, settings, version, toast}, {platfo
         return navPage(_('Connect a self-hosted instance'), [group]);
     };
 
-    if (platform === 'github' && base === GITHUB_COM)
-        nav.add(methodsPage(githubProvider({version})));
+    if (platform === 'github' && base === GITHUB_COM) {
+        const provider = githubProvider({version});
+        nav.add(methodsPage(provider));
+        // `startWith: 'pat'` goes straight to pasting a token, with the ways to sign in one step back.
+        const token = provider.methods.find(method => method.id === 'pat');
+        if (startWith === 'pat' && token)
+            nav.push(tokenPage(provider, token));
+    }
     else if (platform === 'gitlab' && base === GITLAB_COM)
         nav.add(methodsPage(gitlabProvider({version})));
     else if (platform && base)

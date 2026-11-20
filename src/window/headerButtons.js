@@ -8,7 +8,8 @@ import Gtk from 'gi://Gtk';
 
 import {gettext as _} from './i18n.js';
 
-import {fetchProblem, problemFix} from '../lib/accounts.js';
+import {removeAccount} from '../lib/accountStore.js';
+import {accountTitle, fetchProblem, hostLabel, isDefaultBase, platformName, problemFix} from '../lib/accounts.js';
 
 // How long the pointer may be away from the "!" and its note before the note closes.
 const HIDE_DELAY_MS = 300;
@@ -150,16 +151,50 @@ export class RefreshButton {
     }
 }
 
-/** Accounts, with a pinned "get started" note while no account is added. */
+/** What an account's row says about its sign-in: {dot: 'ok' | 'warn' | 'none', text}. */
+function accountStatus(source) {
+    if (source.status === 'signed-out' || (source.status === 'error' && source.error?.kind === 'auth'))
+        return {dot: 'warn', text: _('Sign in again')};
+    if (source.status === 'error' && !source.updatedAt)
+        return {dot: 'warn', text: _('Couldn’t load')};
+    return source.updatedAt ? {dot: 'ok', text: ''} : {dot: 'none', text: ''};
+}
+
+/**
+ * Accounts: with accounts added, a small card under the button lists them (avatar with the
+ * platform's badge, name, login, a status dot) with Add another account, Manage accounts and
+ * Sign out of all. With none, the button opens Settings → Accounts and a "get started" note
+ * stays pinned under it.
+ */
 export class AccountsButton {
-    constructor({openPage}) {
+    constructor({openPage, openAdd, window, settings, toast, names, icons}) {
+        this._openPage = openPage;
+        this._openAdd = openAdd;
+        this._window = window;
+        this._settings = settings;
+        this._toast = toast;
+        this._names = names;
+        this._icons = icons;
+        this._sources = [];
         this._noAccounts = false;
         this._onAccounts = false;
         // ✕ hides the note until the window opens again.
         this._dismissed = false;
         this.widget = new Gtk.Button({child: new Adw.ButtonContent({icon_name: 'avatar-default-symbolic', label: _('Accounts')}),
             valign: Gtk.Align.CENTER, tooltip_text: _('Your GitHub and GitLab sign-ins')});
-        this.widget.connect('clicked', () => openPage('accounts'));
+        this.widget.connect('clicked', () => {
+            if (this._noAccounts) {
+                openPage('accounts');
+                return;
+            }
+            this._buildList();
+            this._list.popup();
+        });
+        this._listBody = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, spacing: 2, width_request: 320,
+            margin_top: 6, margin_bottom: 6, margin_start: 6, margin_end: 6});
+        this._list = new Gtk.Popover({child: this._listBody, position: Gtk.PositionType.BOTTOM,
+            css_classes: ['sourceglance-accounts-popover']});
+        this._list.set_parent(this.widget);
 
         const {box, title, hint, action, close} = note(280, {closable: true});
         close.connect('clicked', () => {
@@ -190,8 +225,93 @@ export class AccountsButton {
     }
 
     update(state) {
+        this._sources = state.sources;
         this._noAccounts = state.status === 'signed-out' && state.sources.length === 0;
         this._show();
+        if (this._list.visible)
+            this._buildList();
+    }
+
+    // One row per account, then the actions, rebuilt each time the card opens.
+    _buildList() {
+        for (let child = this._listBody.get_first_child(); child; child = this._listBody.get_first_child())
+            this._listBody.remove(child);
+        const close = action => () => {
+            this._list.popdown();
+            action();
+        };
+        this._listBody.append(new Gtk.Label({label: _('Your accounts'), xalign: 0, margin_start: 10, margin_top: 4,
+            margin_bottom: 4, css_classes: ['dim-label', 'caption']}));
+        for (const source of this._sources) {
+            const {account, login} = source;
+            const name = this._names.nameOf(account, login) || login || accountTitle(account);
+            const status = accountStatus(source);
+            const avatar = new Adw.Avatar({size: 36, text: name, show_initials: true});
+            const badge = new Gtk.Image({gicon: this._icons[account.platform === 'gitlab' ? 'gitlab' : 'github'], pixel_size: 12,
+                halign: Gtk.Align.END, valign: Gtk.Align.END, css_classes: ['sourceglance-account-badge']});
+            const picture = new Gtk.Overlay({child: avatar, valign: Gtk.Align.CENTER});
+            picture.add_overlay(badge);
+            const texts = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, hexpand: true, valign: Gtk.Align.CENTER});
+            texts.append(new Gtk.Label({label: name, xalign: 0, ellipsize: 3 /* END */, css_classes: ['heading']}));
+            const where = [login ? `@${login}` : '', platformName(account.platform),
+                isDefaultBase(account.platform, account.base) ? '' : hostLabel(account.base)].filter(Boolean).join(' · ');
+            texts.append(new Gtk.Label({label: where, xalign: 0, ellipsize: 3 /* END */, css_classes: ['dim-label', 'caption']}));
+            if (status.text)
+                texts.append(new Gtk.Label({label: status.text, xalign: 0, css_classes: ['caption', 'sourceglance-account-warn']}));
+            const dot = new Gtk.Box({valign: Gtk.Align.CENTER, css_classes: ['sourceglance-dot', status.dot]});
+            const content = new Gtk.Box({spacing: 10});
+            content.append(picture);
+            content.append(texts);
+            content.append(dot);
+            const row = new Gtk.Button({child: content, css_classes: ['flat', 'sourceglance-account-row'],
+                tooltip_text: _('Open this account in Settings')});
+            row.update_property([Gtk.AccessibleProperty.LABEL], [`${name}, ${where}`]);
+            row.connect('clicked', close(() => this._openPage('accounts')));
+            this._listBody.append(row);
+        }
+        this._listBody.append(new Gtk.Separator({margin_top: 4, margin_bottom: 4}));
+        const action = (iconName, label, onClick) => {
+            const content = new Gtk.Box({spacing: 12});
+            content.append(new Gtk.Image({icon_name: iconName, pixel_size: 16, margin_start: 10, margin_end: 4}));
+            content.append(new Gtk.Label({label, xalign: 0}));
+            const button = new Gtk.Button({child: content, css_classes: ['flat', 'sourceglance-account-row']});
+            button.connect('clicked', close(onClick));
+            this._listBody.append(button);
+        };
+        action('list-add-symbolic', _('Add another account'), () => this._openAdd());
+        action('emblem-system-symbolic', _('Manage accounts'), () => this._openPage('accounts'));
+        this._listBody.append(new Gtk.Separator({margin_top: 4, margin_bottom: 4}));
+        const signOut = new Gtk.Button({label: _('Sign out of all'), halign: Gtk.Align.END, margin_end: 4, margin_bottom: 2,
+            css_classes: ['flat', 'sourceglance-account-signout']});
+        signOut.connect('clicked', close(() => this._confirmSignOutAll()));
+        this._listBody.append(signOut);
+    }
+
+    _confirmSignOutAll() {
+        const accounts = this._sources.map(source => source.account);
+        if (accounts.length === 0)
+            return;
+        const dialog = new Adw.AlertDialog({
+            heading: _('Sign out of all accounts?'),
+            body: _('Source Glance forgets every account’s sign-in from the keyring and stops showing their items. A personal access token stays valid until you revoke it on its instance.'),
+        });
+        dialog.add_response('cancel', _('Cancel'));
+        dialog.add_response('remove', _('Sign out of all'));
+        dialog.set_response_appearance('remove', Adw.ResponseAppearance.DESTRUCTIVE);
+        dialog.set_default_response('cancel');
+        dialog.set_close_response('cancel');
+        dialog.connect('response', async (_dialog, response) => {
+            if (response !== 'remove')
+                return;
+            try {
+                for (const account of accounts)
+                    await removeAccount(this._settings, account);
+                this._toast(_('Signed out of all accounts'));
+            } catch (e) {
+                this._toast(_('Couldn’t sign out: %s').format(e.message));
+            }
+        });
+        dialog.present(this._window);
     }
 
     /** The page now shown: on Accounts itself, the note would only cover what it points to. */
@@ -202,5 +322,6 @@ export class AccountsButton {
 
     destroy() {
         this._popover.unparent();
+        this._list.unparent();
     }
 }

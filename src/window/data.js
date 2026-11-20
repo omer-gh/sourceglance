@@ -7,6 +7,7 @@ import Gio from 'gi://Gio';
 import {loadAccount, loadAccounts, rememberLogin} from '../lib/accountStore.js';
 import {aggregateStatus, firstError, latestUpdate, sourceFrom} from '../lib/accounts.js';
 import {GitHubError, isCancelled} from '../lib/github.js';
+import {boardKey} from '../lib/projects.js';
 import {allowLinkBases} from '../lib/requests.js';
 
 export class WindowData {
@@ -21,6 +22,8 @@ export class WindowData {
         this.accounts = [];
         // Each account's last load, by account id.
         this._results = new Map();
+        // Hiding or showing a board in Settings changes the lists right away.
+        settings.connect('changed::hidden-boards', () => this._publish());
         this.state = {status: 'loading', sources: [], updatedAt: null, error: null, busy: [], refreshing: false};
     }
 
@@ -59,7 +62,9 @@ export class WindowData {
     }
 
     _publish() {
-        const sources = this.accounts.map(account => sourceFrom(account, this._results.get(account.id)));
+        const hiddenKeys = new Set(this._settings.get_strv('hidden-boards'));
+        const sources = this.accounts.map(account => sourceFrom(account, this._results.get(account.id), undefined,
+            board => hiddenKeys.has(boardKey(board))));
         this._set({sources, status: aggregateStatus(sources), updatedAt: latestUpdate(sources), error: firstError(sources)});
     }
 
@@ -135,8 +140,8 @@ export class WindowData {
             this._publish();
             const options = {
                 repos: this._settings.get_strv('repositories'),
-                // The window always has a Projects page, whatever the top bar shows.
-                projects: true,
+                // The window always has a Project Boards page, whatever the top bar shows.
+                boards: true,
                 // Everyone's open items in your repositories, for the Assignee filter.
                 team: true,
             };

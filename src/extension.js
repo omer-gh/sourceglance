@@ -10,16 +10,18 @@ import {ActionController} from './lib/actions.js';
 import {installLauncher, removeLauncher} from './lib/appLauncher.js';
 import {GitHubClient, GitHubError, isCancelled} from './lib/github.js';
 import {ToolbarButton} from './lib/indicator.js';
+import {migrateBoardsRename} from './lib/migrations.js';
+import {boardKey, normalizeRepoMap} from './lib/projects.js';
 import {allowLinkBases} from './lib/requests.js';
 import {UpdateNotice} from './lib/updateNotice.js';
 import {backgroundSettings, forgetStaleSavedWallpaper} from './lib/wallpaper.js';
 import {DesktopWidgets} from './lib/widgets.js';
-import {WIDGET_ICONS, itemKey, nextRefreshDelaySeconds, normalizeButtons, normalizeWidgets, parseCustomWidgets} from './lib/model.js';
+import {WIDGET_ICONS, itemKey, nextRefreshDelaySeconds, normalizeButtons, normalizeGroupBy, normalizeWidgets, parseCustomWidgets} from './lib/model.js';
 
 // Settings that change which top-bar buttons exist.
 const TOOLBAR_KEYS = ['layout', 'toolbar-buttons'];
 // Settings that don't need a refresh when they change.
-const UI_ONLY_KEYS = ['start-automatically', 'start-request', 'quit-request', 'app-launcher', 'widget-positions', 'widget-opacity',
+const UI_ONLY_KEYS = ['start-automatically', 'start-request', 'bar-enabled', 'group-by', 'project-repos', 'organization-names', 'quit-request', 'app-launcher', 'widget-positions', 'widget-opacity',
     'widget-opacities', 'widget-size', 'widget-sizes', 'widgets-off-desktop', 'widget-layout', 'widget-backdrop', 'widget-arrangement',
     'collapsed-sections', 'collapsed-groups', 'open-page', 'install-update', 'saved-wallpaper', 'tasks-expanded'];
 
@@ -50,6 +52,7 @@ const INITIAL_STATE = {
 export default class SourceglanceExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
+        migrateBoardsRename(this._settings);
         // For the update notice: sourceglance's releases are on github.com, signed in or not.
         this._client = new GitHubClient(this.metadata['version-name'] ?? 'dev');
         this._clients = new AccountClients(this.metadata['version-name'] ?? 'dev');
@@ -73,7 +76,7 @@ export default class SourceglanceExtension extends Extension {
         const icon = name => Gio.FileIcon.new(this.dir.get_child('icons').get_child(`${name}-symbolic.svg`));
         this._icons = {
             issues: Gio.ThemedIcon.new('checkbox-checked-symbolic'),
-            projects: icon('checklist'),
+            boards: icon('checklist'),
             prs: icon('git-pull-request'),
             app: icon('sourceglance'),
             // Used inside the menus.
@@ -92,11 +95,23 @@ export default class SourceglanceExtension extends Extension {
         this._settingsChangedId = this._settings.connect('changed', (_settings, key) => {
             if (key === 'start-request')
                 this._start();
+            // The Top bar switch (Glance → System Tray): on shows the top bar and starts refreshing, off stops
+            // them, without closing the window.
+            if (key === 'bar-enabled') {
+                const on = this._settings.get_boolean('bar-enabled');
+                if (on && !this._running)
+                    this._start();
+                else if (!on && this._running)
+                    this._stop();
+            }
             // Quit in the window.
             if (key === 'quit-request' && this._running)
                 this._quit();
             if (key === 'app-launcher')
                 this._syncLauncher();
+            // Changing how the lists are built redraws them; nothing needs to be loaded again.
+            if (['group-by', 'project-repos', 'organization-names'].includes(key) && this._running)
+                this._setState({});
             if (!this._running || UI_ONLY_KEYS.includes(key))
                 return;
             if (TOOLBAR_KEYS.includes(key)) {
@@ -117,6 +132,8 @@ export default class SourceglanceExtension extends Extension {
         sessionRunning ??= this._settings.get_boolean('start-automatically');
         if (sessionRunning)
             this._start();
+        else
+            this._settings.set_boolean('bar-enabled', false);
         // Once per login (not after the lock screen), say if a newer version is out.
         if (atLogin && sessionRunning) {
             this._updateNotice = new UpdateNotice({
@@ -149,6 +166,7 @@ export default class SourceglanceExtension extends Extension {
             return;
         this._running = true;
         sessionRunning = true;
+        this._settings.set_boolean('bar-enabled', true);
         this._buildButtons();
         this._widgets = new DesktopWidgets({
             settings: this._settings,
@@ -166,7 +184,22 @@ export default class SourceglanceExtension extends Extension {
     _quit() {
         this._running = false;
         sessionRunning = false;
+        this._settings.set_boolean('bar-enabled', false);
         this._settings.set_int('quit-request', this._settings.get_int('quit-request') + 1);
+        this._shutDown();
+        Main.notify('Source Glance', _('Source Glance has quit. To show the top bar again, open Source Glance ' +
+            'and switch Top bar on under Glance → System Tray.'));
+    }
+
+    /** The Top bar switch, off: the same as Quit, but the window stays open. */
+    _stop() {
+        this._running = false;
+        sessionRunning = false;
+        this._shutDown();
+    }
+
+    /** Stops refreshing and takes down the buttons and desktop widgets. */
+    _shutDown() {
         this._cancellable?.cancel();
         this._cancellable = null;
         if (this._timeoutId) {
@@ -179,8 +212,6 @@ export default class SourceglanceExtension extends Extension {
         this._buttons = [];
         this._widgets?.destroy();
         this._widgets = null;
-        Main.notify('Source Glance', _('Source Glance has quit. To start it again, open its Settings ' +
-            'from the Extensions app and choose Start now.'));
     }
 
     disable() {
@@ -261,11 +292,18 @@ export default class SourceglanceExtension extends Extension {
         const callbacks = {
             onRefresh: () => this._refresh(),
             onOpenTasks: () => this._openWindow('tasks'),
+            onOpenPage: page => this._openWindow(page),
             // Settings opens on the first settings page; signing in is there too.
             onSettings: () => this._openWindow('accounts'),
             onAbout: () => this._openWindow('about'),
             onAction: (item, action, arg) => this._actions.run(item, action, arg),
             getRepos: () => this._settings?.get_strv('repositories') ?? [],
+            // The top bar lists are built from Glance → System Tray's Group by, and your projects and organization names.
+            getListSettings: () => ({
+                groupBy: normalizeGroupBy(this._settings?.get_string('group-by')),
+                projectRepos: normalizeRepoMap(this._settings?.get_value('project-repos').recursiveUnpack() ?? {}),
+                organizationNames: this._settings?.get_value('organization-names').recursiveUnpack() ?? {},
+            }),
             getAutostart: () => this._settings?.get_boolean('start-automatically') ?? true,
             // `key` is collapsed-sections (GitHub/GitLab) or collapsed-groups (repositories).
             getCollapsed: key => this._settings?.get_strv(key) ?? [],
@@ -335,7 +373,9 @@ export default class SourceglanceExtension extends Extension {
             }
         }
         const hidden = item => this._closed.has(itemKey(item));
-        const sources = this._accounts.map(account => sourceFrom(account, this._results.get(account.id), hidden));
+        const hiddenKeys = new Set(this._settings.get_strv('hidden-boards'));
+        const sources = this._accounts.map(account => sourceFrom(account, this._results.get(account.id), hidden,
+            board => hiddenKeys.has(boardKey(board))));
         this._setState({
             sources,
             status: aggregateStatus(sources),
@@ -410,13 +450,13 @@ export default class SourceglanceExtension extends Extension {
                 return;
             }
             this._publish();
-            // Boards feed the Projects list and the projects and summary widgets.
+            // Boards feed the Project Boards list and the boards and summary widgets.
             const custom = parseCustomWidgets(this._settings.get_strv('custom-widgets'));
             const widgets = normalizeWidgets(this._settings.get_strv('widgets'), custom);
             const options = {
                 repos: this._settings.get_strv('repositories'),
-                projects: this._lists().includes('projects') || widgets.includes('projects') || widgets.includes('summary') ||
-                    custom.some(def => def.kind === 'projects' && widgets.includes(def.id)),
+                boards: this._lists().includes('boards') || widgets.includes('boards') || widgets.includes('summary') ||
+                    custom.some(def => def.kind === 'boards' && widgets.includes(def.id)),
             };
             errors = (await Promise.all(this._accounts.map(account =>
                 this._loadAccount(account, options, cancellable)))).filter(Boolean);

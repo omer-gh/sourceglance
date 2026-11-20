@@ -5,6 +5,7 @@ import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 
 import {gettext as _} from './i18n.js';
+import {PANEL_MIN_WIDTH, PANEL_SLIDE_MS, defaultPanelWidth} from './panelSize.js';
 
 let themeLoaded = false;
 
@@ -227,18 +228,51 @@ export function buildMainWindow(window, {appIcon, exitIcon, overlay, entries, he
     const panelHead = new Gtk.CenterBox({start_widget: panelIcon, center_widget: panelTitle, end_widget: panelClose,
         css_classes: ['sourceglance-panel-head']});
     const panelBody = new Adw.Bin({vexpand: true});
-    const panel = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, visible: false, width_request: 320,
+    const panel = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, width_request: PANEL_MIN_WIDTH,
         css_classes: ['sourceglance-panel']});
     panel.append(panelHead);
     panel.append(new Gtk.Separator());
     panel.append(panelBody);
-    const paned = new Gtk.Paned({start_child: stack, end_child: panel, resize_start_child: true,
+    // The panel slides in from the right and out again. Docked, it sits beside the page and shrinks
+    // it (the task preview); as an overlay it floats over the page's right side and covers it
+    // (an account's Limit repositories & boards). The one panel moves between the two places.
+    const panelReveal = new Gtk.Revealer({child: panel, visible: false, transition_duration: PANEL_SLIDE_MS,
+        transition_type: Gtk.RevealerTransitionType.SLIDE_LEFT});
+    const overlayReveal = new Gtk.Revealer({visible: false, halign: Gtk.Align.END, transition_duration: PANEL_SLIDE_MS,
+        transition_type: Gtk.RevealerTransitionType.SLIDE_LEFT});
+    const stackHost = new Gtk.Overlay({child: stack});
+    stackHost.add_overlay(overlayReveal);
+    const paned = new Gtk.Paned({start_child: stackHost, end_child: panelReveal, resize_start_child: true,
         resize_end_child: true, shrink_start_child: false, shrink_end_child: false, wide_handle: false});
     let panelOwner = null;
+    const revealers = [panelReveal, overlayReveal];
+    const panelOpen = () => revealers.some(revealer => revealer.reveal_child);
     const hidePanel = () => {
-        panel.visible = false;
-        panelBody.child = null;
+        for (const revealer of revealers)
+            revealer.reveal_child = false;
         panelOwner = null;
+    };
+    // Gone for good, and emptied, only once it has slid out.
+    for (const revealer of revealers) {
+        revealer.connect('notify::child-revealed', () => {
+            if (revealer.child_revealed || revealer.reveal_child)
+                return;
+            revealer.visible = false;
+            if (!panelOpen() && panel.get_parent() === revealer)
+                panelBody.child = null;
+        });
+    }
+    // Moves the panel to the docked or the overlay place, hiding the other at once.
+    const placePanel = overlay => {
+        const [to, from] = overlay ? [overlayReveal, panelReveal] : [panelReveal, overlayReveal];
+        if (panel.get_parent() === to)
+            return to;
+        from.reveal_child = false;
+        from.visible = false;
+        from.set_child(null);
+        to.set_child(panel);
+        panel[overlay ? 'add_css_class' : 'remove_css_class']('sourceglance-overlay-panel');
+        return to;
     };
     panelClose.connect('clicked', hidePanel);
 
@@ -316,13 +350,36 @@ export function buildMainWindow(window, {appIcon, exitIcon, overlay, entries, he
         window.add(new Adw.PreferencesPage());
     window.set_content(overlay);
 
+    // A child row slides in and out (its content sits in a Revealer, made the first time it moves);
+    // it is hidden for good only once the slide is done.
+    const slideRow = (row, show) => {
+        if (!row._revealer) {
+            const content = row.get_child();
+            row.set_child(null);
+            row._revealer = new Gtk.Revealer({child: content, reveal_child: row.visible, transition_duration: 200,
+                transition_type: Gtk.RevealerTransitionType.SLIDE_DOWN});
+            row._revealer.connect('notify::child-revealed', () => {
+                if (!row._revealer.child_revealed && !row._revealer.reveal_child)
+                    row.visible = false;
+            });
+            row.set_child(row._revealer);
+        }
+        if (show)
+            row.visible = true;
+        row._revealer.reveal_child = show;
+    };
+
     // Expandable entries: their children show only while they're expanded.
-    const setExpanded = (parentRow, expanded) => {
+    const setExpanded = (parentRow, expanded, animate = true) => {
         parentRow._expanded = expanded;
         parentRow._expander.icon_name = expanded ? 'pan-down-symbolic' : 'pan-end-symbolic';
         parentRow._expander.tooltip_text = expanded ? _('Hide the lists under this one') : _('Show the lists under this one');
         for (const row of rows.values()) {
-            if (row._entry.parent === parentRow._entry.id)
+            if (row._entry.parent !== parentRow._entry.id)
+                continue;
+            if (animate)
+                slideRow(row, expanded);
+            else
                 row.visible = expanded;
         }
         // A hidden page can't stay selected: its parent takes over.
@@ -332,7 +389,7 @@ export function buildMainWindow(window, {appIcon, exitIcon, overlay, entries, he
     for (const row of rows.values()) {
         if (!row._expander)
             continue;
-        setExpanded(row, Boolean(row._entry.expanded));
+        setExpanded(row, Boolean(row._entry.expanded), false);
         row._expander.connect('clicked', () => {
             setExpanded(row, !row._expanded);
             row._entry.onExpandedChanged?.(row._expanded);
@@ -342,6 +399,9 @@ export function buildMainWindow(window, {appIcon, exitIcon, overlay, entries, he
     let currentId = null;
     const show = entry => {
         currentId = entry.id;
+        // Going to another page closes the right panel, which belongs to the page it was opened on.
+        if (stack.visible_child_name !== (entry.pageId ?? entry.id))
+            hidePanel();
         stack.visible_child_name = entry.pageId ?? entry.id;
         contentPage.title = entry.pageTitle ?? entry.title;
         windowTitle.title = entry.pageTitle ?? entry.title;
@@ -451,23 +511,43 @@ export function buildMainWindow(window, {appIcon, exitIcon, overlay, entries, he
         /**
          * Shows `child` in the right panel under `title` (and `subtitle`), with `icon` (a widget)
          * before the title. `owner` tells who has it now, e.g. an item's key; isPanelFor() checks it.
+         * `overlay` floats it over the page instead of docking it beside the page.
          */
-        showPanel({title, subtitle = '', icon = null, child, owner = null}) {
+        showPanel({title, subtitle = '', icon = null, child, owner = null, overlay = false}) {
             panelTitle.title = title;
             panelTitle.subtitle = subtitle;
             panelIcon.child = icon;
             panelBody.child = child;
             panelOwner = owner;
-            if (!panel.visible) {
-                panel.visible = true;
-                const width = paned.get_width();
-                // At least half the window, so the preview has room; the list keeps 280px.
-                const panelWidth = Math.max(320, Math.round(window.get_width() * 0.5));
-                if (width > 0)
-                    paned.position = Math.max(280, width - panelWidth);
+            const target = placePanel(overlay);
+            if (target.reveal_child)
+                return;
+            target.visible = true;
+            target.reveal_child = true;
+            const windowWidth = window.get_width();
+            if (overlay) {
+                // Over the page, never wider than the page it covers.
+                panel.width_request = Math.min(stackHost.get_width() || Infinity, defaultPanelWidth(windowWidth));
+                return;
             }
+            panel.width_request = PANEL_MIN_WIDTH;
+            const room = paned.get_width();
+            // The task list gives way first, down to its narrowest (a title at 40 characters).
+            const listMin = (stack.get_visible_child() ?? stack).measure(Gtk.Orientation.HORIZONTAL, -1)[0];
+            // The panel opens at half the window (at least 380px)...
+            const panelWidth = defaultPanelWidth(windowWidth);
+            // ...and if the list can't shrink enough, the window grows, by at most half its width.
+            const deficit = listMin + panelWidth - room;
+            if (deficit > 0 && !window.is_maximized() && !window.is_fullscreen()) {
+                const grow = Math.min(deficit, Math.floor(windowWidth / 2));
+                // The window keeps its new width when the panel closes: no resizing back and forth.
+                window.set_default_size(windowWidth + grow, window.get_height());
+            }
+            if (room > 0)
+                paned.position = Math.max(listMin, room - panelWidth);
         },
         hidePanel,
-        isPanelFor: owner => panel.visible && panelOwner === owner,
+        isPanelFor: owner => panelOpen() && panelOwner === owner,
+        isPanelOpen: panelOpen,
     };
 }

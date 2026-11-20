@@ -14,7 +14,7 @@ import {gettext as _} from '../i18n.js';
 import {UNASSIGNED, defaultTaskFilters, taskFilterGroups, toggleTaskFilter} from '../../lib/model.js';
 
 function kindTitle(kind) {
-    return {issue: _('Issues'), pr: _('Pull requests'), draft: _('Projects')}[kind];
+    return {issue: _('Issues'), pr: _('Pull requests'), draft: _('Project Boards')}[kind];
 }
 
 function typeTitle(type) {
@@ -58,8 +58,8 @@ function chipType(type) {
 }
 
 export class FilterBar {
-    /** `types` are the buttons, in order; `onChange` runs after the filters change. */
-    constructor({types, onChange}) {
+    /** `types` are the buttons, in order; `onChange` runs after the filters change; `trailing` is a widget after them. */
+    constructor({types, onChange, trailing = null}) {
         this._types = types;
         this._onChange = onChange;
         // Active filters, in the order added: [{type, value, title}]. Until you change them,
@@ -94,7 +94,13 @@ export class FilterBar {
         // From the left, like the list under it.
         const bar = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, spacing: 6, margin_top: 12, margin_bottom: 6,
             margin_start: 12, margin_end: 12, css_classes: ['sourceglance-filter-bar']});
-        buttons.halign = Gtk.Align.START;
+        // The trailing control sits at the row's end, after a spacer and a thin vertical line.
+        if (trailing) {
+            buttons.append(new Gtk.Box({hexpand: true}));
+            buttons.append(new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL, margin_top: 4, margin_bottom: 4}));
+            buttons.append(trailing);
+        }
+        buttons.halign = trailing ? Gtk.Align.FILL : Gtk.Align.START;
         bar.append(buttons);
         bar.append(this._chipRow);
         this.widget = bar;
@@ -162,8 +168,10 @@ export class FilterBar {
                 list.append(check);
             }
             menu.popover.child = options.length > 8
+                // Keeps the list's own width (a scrolled window would shrink it to the names' ellipses).
                 ? new Gtk.ScrolledWindow({child: list, hscrollbar_policy: Gtk.PolicyType.NEVER,
-                    propagate_natural_height: true, max_content_height: 360})
+                    propagate_natural_height: true, propagate_natural_width: true, min_content_width: 240,
+                    max_content_height: 360})
                 : list;
         }
     }

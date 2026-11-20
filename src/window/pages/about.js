@@ -1,5 +1,7 @@
-// About: version, author, and how to report issues or contribute (fork and pull request).
+// About: version, the update check right under it, author, and how to report issues or contribute
+// (fork and pull request). A page of its own under Settings.
 import Adw from 'gi://Adw';
+import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
 import {gettext as _} from '../i18n.js';
@@ -16,10 +18,9 @@ function linkRow(window, {title, subtitle = null, uri, iconName = null}) {
     return row;
 }
 
-/** `ctx` is {window, appIcon, version}. */
-export function buildAboutPage({window, appIcon, version}) {
+/** The About page. `ctx` is {window, settings, appIcon, version}. */
+export function buildAboutPage({window, settings, appIcon, version}) {
     const page = new Adw.PreferencesPage();
-
     const header = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, spacing: 6, halign: Gtk.Align.CENTER,
         margin_top: 12, margin_bottom: 6});
     header.append(new Gtk.Image({gicon: appIcon, pixel_size: 96, margin_bottom: 6}));
@@ -32,6 +33,19 @@ export function buildAboutPage({window, appIcon, version}) {
     const headerGroup = new Adw.PreferencesGroup();
     headerGroup.add(header);
     page.add(headerGroup);
+
+    // The update check, right under the version.
+    const updates = new Adw.PreferencesGroup({
+        title: _('Updates'),
+        description: _('Source Glance asks GitHub for its newest release; nothing about you is sent. One Setup file installs, updates, repairs and removes Source Glance.'),
+    });
+    const updatesRow = new Adw.SwitchRow({
+        title: _('Check for updates'),
+        subtitle: _('When a newer version is out, say so when you log in and show “Update available” in the title bar'),
+    });
+    settings.bind('check-updates', updatesRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    updates.add(updatesRow);
+    page.add(updates);
 
     const author = new Adw.PreferencesGroup({title: _('Author')});
     author.add(linkRow(window, {

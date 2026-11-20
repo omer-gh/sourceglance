@@ -234,7 +234,7 @@ function errorText(error, item = null) {
 
 export class WindowActions {
     /** `data` is the WindowData; `clients` an AccountClients; `window` parents the dialogs. */
-    /** `panel` is {show({title, subtitle, child, owner}), hide(), isFor(owner)}: the window's right panel. */
+    /** `panel` is {show({title, subtitle, child, owner}), hide(), isFor(owner), isOpen()}: the window's right panel. */
     constructor({window, clients, data, toast, icons, panel}) {
         this._window = window;
         this._panel = panel;
@@ -413,6 +413,12 @@ export class WindowActions {
      * reactions (read only), and a box to add a comment. Drafts show only their description.
      * Descriptions and comments are rendered Markdown (markdownView()).
      */
+    /** Working with another item than the one in the right panel closes the panel. */
+    leavePreview(item) {
+        if (this._panel.isOpen() && !this._panel.isFor(itemKey(item)))
+            this._panel.hide();
+    }
+
     preview(item) {
         const draft = item.kind === 'draft';
         const owner = itemKey(item);
@@ -454,7 +460,7 @@ export class WindowActions {
     /** What kind of item this is: its icon and colour (as in the lists) and its name. */
     _kind(item) {
         if (item.kind === 'draft')
-            return {iconName: 'document-edit-symbolic', kindClass: 'sourceglance-kind-draft', kindName: _('Draft')};
+            return {iconName: 'edit-symbolic', kindClass: 'sourceglance-kind-draft', kindName: _('Draft')};
         if (item.kind === 'pr') {
             return {gicon: this._icons.pr, kindClass: 'sourceglance-kind-pr',
                 kindName: item.platform === 'gitlab' ? _('Merge request') : _('Pull request')};
@@ -471,7 +477,7 @@ export class WindowActions {
         const heading = new Gtk.Box({spacing: 6});
         const by = details.author ? _('Description · opened by %s').format(details.author) : _('Description');
         heading.append(new Gtk.Label({label: by, xalign: 0, hexpand: true, css_classes: ['sourceglance-section-title']}));
-        const edit = actionButton({iconName: 'document-edit-symbolic', label: _('Edit'), onClick: () => startEditing()});
+        const edit = actionButton({iconName: 'edit-symbolic', label: _('Edit'), onClick: () => startEditing()});
         heading.append(edit);
         box.append(heading);
         const description = new Gtk.Stack({vhomogeneous: false, transition_type: Gtk.StackTransitionType.CROSSFADE});

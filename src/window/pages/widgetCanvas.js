@@ -60,7 +60,7 @@ export function loadPreview(picture, uri, width = PREVIEW_WIDTH) {
  */
 export function widgetInfo(id, icons, def = null) {
     if (def) {
-        const kind = {issues: _('Issues'), prs: _('Pull requests'), projects: _('Project drafts')}[def.kind];
+        const kind = {issues: _('Issues'), prs: _('Pull requests'), boards: _('Project drafts')}[def.kind];
         return {title: def.name, gicon: icons[`widget-${def.icon}`], subtitle: kind};
     }
     return {
@@ -68,7 +68,7 @@ export function widgetInfo(id, icons, def = null) {
             subtitle: _('All counts, including closed and merged items still assigned to you')},
         issues: {title: _('Issues'), gicon: icons.issue, subtitle: _('Open issues assigned to you')},
         prs: {title: _('Pull requests'), gicon: icons.pr, subtitle: _('Assigned to you or awaiting your review')},
-        projects: {title: _('Projects'), gicon: icons.projects, subtitle: _('Draft items on your project boards')},
+        boards: {title: _('Project Boards'), gicon: icons.boards, subtitle: _('Draft items on your project boards')},
     }[id];
 }
 
@@ -297,8 +297,8 @@ class Card {
             this._renderCustom(state);
         else if (this.id === 'summary')
             this._renderSummary(state, repos);
-        else if (this.id === 'projects')
-            this._renderProjects(state);
+        else if (this.id === 'boards')
+            this._renderBoards(state);
         else
             this._renderItems(state);
     }
@@ -316,7 +316,7 @@ class Card {
             url: github(searchPageUrl('issue', repos))});
         this._row({gicon: icons.pr, text: _('Pull requests'), detail: listBadge('prs', state),
             url: github('https://github.com/pulls')});
-        this._row({gicon: icons.projects, text: _('Project drafts'), detail: listBadge('projects', state) || '–'});
+        this._row({gicon: icons.boards, text: _('Project drafts'), detail: listBadge('boards', state) || '–'});
         this._row({gicon: icons.issueClosed, text: _('Closed issues still assigned'), detail: sum('issues'),
             url: github(searchPageUrl('issue-closed', repos))});
         this._row({gicon: icons.prMerged, text: _('Merged or closed PRs still assigned'), detail: sum('prs'),
@@ -345,7 +345,7 @@ class Card {
     _draftRow({board, draft}) {
         return {
             gicon: isDoneStatus(draft.status) ? this._icons.issueClosed : null,
-            iconName: isDoneStatus(draft.status) ? null : 'document-edit-symbolic',
+            iconName: isDoneStatus(draft.status) ? null : 'edit-symbolic',
             text: truncate(draft.title || _('Untitled draft'), 80),
             detail: draft.status ?? _('No status'),
             url: board.url,
@@ -359,7 +359,7 @@ class Card {
             pr ? _('No open pull requests for you') : _('No open issues assigned to you'));
     }
 
-    _renderProjects(state) {
+    _renderBoards(state) {
         const sources = state.sources.filter(src => src.platform === 'github' && src.updatedAt);
         if (sources.length === 0 || sources.every(src => src.boardsError)) {
             this._message(_('Can’t read your project boards.'));
@@ -376,7 +376,7 @@ class Card {
     _renderCustom(state) {
         const found = customWidgetItems(this.def, state);
         this._count.label = String(found.length);
-        this._renderList(found, entry => (this.def.kind === 'projects' ? this._draftRow(entry) : this._itemRow(entry)),
+        this._renderList(found, entry => (this.def.kind === 'boards' ? this._draftRow(entry) : this._itemRow(entry)),
             _('Nothing matches this widget’s filters'));
     }
 }

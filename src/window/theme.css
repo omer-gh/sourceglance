@@ -86,9 +86,66 @@
     margin-left: 18px;
 }
 
+/* A plain accordion: a full-width header with a thin line under it, its rows indented below
+   with a guide line down their left side. No tints, no focus box. */
+.sourceglance-window .sourceglance-accordion-header {
+    border-bottom: 1px solid alpha(currentColor, 0.12);
+}
+
+/* The header is one hover area: the chevron, title, count and any button light together. */
+.sourceglance-window .sourceglance-accordion-header:hover {
+    background-color: alpha(currentColor, 0.05);
+}
+
+.sourceglance-window .sourceglance-group-arrow {
+    min-width: 24px;
+    min-height: 24px;
+    -gtk-icon-size: 18px;
+    transition: -gtk-icon-transform 200ms ease;
+}
+
+.sourceglance-window .sourceglance-group-arrow.collapsed {
+    -gtk-icon-transform: rotate(-90deg);
+}
+
 .sourceglance-window .sourceglance-group-toggle {
-    padding: 2px 6px;
-    margin-left: -6px;
+    padding: 10px 4px;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    outline: none;
+}
+
+.sourceglance-window .sourceglance-group-toggle:hover {
+    background: none;
+}
+
+.sourceglance-window .sourceglance-group-toggle:focus-visible label {
+    text-decoration: underline;
+}
+
+.sourceglance-window .sourceglance-group-count {
+    background-color: alpha(currentColor, 0.10);
+    color: alpha(currentColor, 0.75);
+    border-radius: 999px;
+    min-width: 18px;
+    padding: 1px 7px;
+    font-size: smaller;
+}
+
+.sourceglance-window .sourceglance-accordion-body {
+    background: none;
+    margin-left: 11px;
+    border-left: 1px solid alpha(currentColor, 0.12);
+}
+
+.sourceglance-window .sourceglance-accordion-body > row {
+    background: none;
+    border-bottom: 1px solid alpha(currentColor, 0.08);
+}
+
+.sourceglance-window .sourceglance-accordion-body > row:last-child {
+    border-bottom: none;
 }
 
 .sourceglance-window .sourceglance-count-pill {
@@ -632,17 +689,6 @@
     padding: 0 6px;
 }
 
-/* Settings: the status bar at its foot, and About sliding over it from the right. */
-.sourceglance-window .sourceglance-status-bar {
-    padding: 2px 6px 2px 12px;
-    border-top: 1px solid alpha(currentColor, 0.12);
-}
-
-.sourceglance-window .sourceglance-about-panel {
-    border-left: 1px solid alpha(currentColor, 0.15);
-    box-shadow: -6px 0 18px alpha(black, 0.12);
-}
-
 /* The ✕ on a pinned note: small, in its top-right corner. */
 .sourceglance-window .sourceglance-note-close {
     min-width: 24px;
@@ -682,4 +728,86 @@
 
 .sourceglance-window .navigation-sidebar.sourceglance-submenu-list > row:selected .sourceglance-count-pill {
     background-color: alpha(#ffffff, 0.25);
+}
+
+/* An item row is one hover and background area: the arrow, icons, title and buttons light together,
+   and the arrow is a plain, larger chevron with no box of its own. */
+.sourceglance-window row.sourceglance-item-row:hover {
+    background-color: alpha(currentColor, 0.05);
+}
+
+.sourceglance-window .sourceglance-item-arrow {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    -gtk-icon-size: 18px;
+}
+
+.sourceglance-window .sourceglance-item-arrow:hover {
+    background: none;
+}
+
+/* The Accounts button's card: a row per account, with the platform's badge on the avatar and a
+   dot for how its sign-in is doing. */
+.sourceglance-account-row {
+    padding: 8px 10px;
+    border-radius: 10px;
+}
+
+.sourceglance-account-badge {
+    background-color: @popover_bg_color;
+    border: 1px solid alpha(currentColor, 0.15);
+    border-radius: 999px;
+    padding: 2px;
+    margin: 0 -3px -3px 0;
+}
+
+.sourceglance-dot {
+    min-width: 8px;
+    min-height: 8px;
+    border-radius: 999px;
+    background-color: alpha(currentColor, 0.25);
+}
+
+.sourceglance-dot.ok {
+    background-color: @success_color;
+}
+
+.sourceglance-dot.warn {
+    background-color: @warning_color;
+}
+
+.sourceglance-account-warn {
+    color: @warning_color;
+}
+
+.sourceglance-account-signout {
+    font-size: smaller;
+    color: alpha(currentColor, 0.7);
+}
+
+/* The panel as an overlay (an account's Limit repositories & boards): it floats over the page. */
+.sourceglance-window .sourceglance-overlay-panel {
+    border-left: 1px solid alpha(currentColor, 0.15);
+    box-shadow: -6px 0 18px alpha(black, 0.12);
+}
+
+/* A label under a control saying what it is: as small as text gets. */
+.sourceglance-micro-label {
+    font-size: x-small;
+}
+
+/* A page's main tabs (Settings → Preferences): large, like the tabs of a page rather than a toolbar. */
+.sourceglance-main-tabs button {
+    min-height: 44px;
+    min-width: 150px;
+    padding: 0 22px;
+    font-size: 1.15em;
+    font-weight: bold;
+}
+
+.sourceglance-main-tabs button image {
+    -gtk-icon-size: 20px;
 }

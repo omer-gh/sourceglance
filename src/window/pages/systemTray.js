@@ -1,6 +1,6 @@
 // Glance → System Tray: how sourceglance looks in the top bar. Two tiles preview the layouts;
 // click one to use it. On the previews, each list's button (a top-bar icon, or a tab in the
-// menu) shows or hides that list. The refresh interval sits beside the heading.
+// menu) shows or hides that list. The Top bar switch, Group by and the refresh interval sit beside the heading.
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
@@ -8,13 +8,15 @@ import {gettext as _} from '../i18n.js';
 
 import {TOOLBAR_LISTS, normalizeButtons} from '../../lib/model.js';
 
+import {groupByControl} from './common.js';
+
 const LAYOUTS = ['separate', 'tabs'];
 
 function listInfo(id, icons) {
     return {
         issues: {title: _('Issues'), short: _('Issues'), gicon: icons.issue},
         prs: {title: _('Pull requests'), short: _('PRs'), gicon: icons.pr},
-        projects: {title: _('Projects'), short: _('Projects'), gicon: icons.projects},
+        boards: {title: _('Project Boards'), short: _('Boards'), gicon: icons.boards},
     }[id];
 }
 
@@ -28,13 +30,25 @@ function placeholderLines(box, widths) {
 /** `ctx` is {settings, icons, window}. Returns {suffix, widget}. */
 export function buildSystemTraySection({settings, icons, window}) {
     // Beside the heading: minutes between checks.
-    const suffix = new Gtk.Box({spacing: 6, valign: Gtk.Align.CENTER, tooltip_text: _('Minutes between checks')});
-    suffix.append(new Gtk.Image({icon_name: 'view-refresh-symbolic', css_classes: ['dim-label']}));
+    const suffix = new Gtk.Box({spacing: 12, valign: Gtk.Align.CENTER});
+    // Top bar on or off: off takes down the top bar and desktop widgets until you switch it on again.
+    const bar = new Gtk.Box({spacing: 6, valign: Gtk.Align.CENTER, tooltip_text: _('Show Source Glance in the top bar')});
+    bar.append(new Gtk.Label({label: _('Top bar'), css_classes: ['dim-label']}));
+    const barSwitch = new Gtk.Switch({valign: Gtk.Align.CENTER});
+    barSwitch.update_property([Gtk.AccessibleProperty.LABEL], [_('Top bar')]);
+    settings.bind('bar-enabled', barSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+    bar.append(barSwitch);
+    suffix.append(bar);
+    suffix.append(new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL, margin_top: 4, margin_bottom: 4}));
+    suffix.append(groupByControl(settings));
+    const refresh = new Gtk.Box({spacing: 6, valign: Gtk.Align.CENTER, tooltip_text: _('Minutes between checks')});
+    suffix.append(refresh);
+    refresh.append(new Gtk.Image({icon_name: 'view-refresh-symbolic', css_classes: ['dim-label']}));
     const interval = new Gtk.SpinButton({adjustment: new Gtk.Adjustment({lower: 1, upper: 120, step_increment: 1,
         page_increment: 10}), width_chars: 3, valign: Gtk.Align.CENTER});
     settings.bind('refresh-interval', interval, 'value', Gio.SettingsBindFlags.DEFAULT);
-    suffix.append(interval);
-    suffix.append(new Gtk.Label({label: _('min'), css_classes: ['dim-label']}));
+    refresh.append(interval);
+    refresh.append(new Gtk.Label({label: _('min'), css_classes: ['dim-label']}));
 
     // The list buttons on both previews, by list id, kept in step with the setting.
     const toggles = new Map(TOOLBAR_LISTS.map(id => [id, []]));

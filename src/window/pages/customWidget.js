@@ -91,8 +91,8 @@ export function openCustomWidgetDialog({window, settings, icons, toast}, def, on
     const showFields = () => {
         const chosen = CUSTOM_WIDGET_KINDS[kind.selected];
         relation.visible = chosen === 'prs';
-        repos.visible = chosen !== 'projects';
-        labels.visible = chosen !== 'projects';
+        repos.visible = chosen !== 'boards';
+        labels.visible = chosen !== 'boards';
     };
     kind.connect('notify::selected', showFields);
     showFields();
@@ -112,8 +112,8 @@ export function openCustomWidgetDialog({window, settings, icons, toast}, def, on
             kind: chosen,
             account: accountIds[account.selected] ?? '',
             relation: chosen === 'prs' ? CUSTOM_WIDGET_RELATIONS[relation.selected] : 'any',
-            repos: chosen === 'projects' ? [] : splitFilterList(repos.text),
-            labels: chosen === 'projects' ? [] : splitFilterList(labels.text),
+            repos: chosen === 'boards' ? [] : splitFilterList(repos.text),
+            labels: chosen === 'boards' ? [] : splitFilterList(labels.text),
             words: words.text,
         });
         if (!next)

@@ -1,4 +1,4 @@
-// Lists → Projects: your boards' draft items (cards that are neither issues nor PRs),
+// Lists → Project Boards: your boards' draft items (cards that are neither issues nor PRs),
 // grouped by board and status, with their actions and an Assignee filter. Boards are GitHub's; with
 // several GitHub accounts, each account's boards follow its name.
 import Adw from 'gi://Adw';
@@ -18,9 +18,10 @@ import {
 import {ListBody, collapsibleGroup, draftRow, noMatchesGroup, statusText} from './common.js';
 import {FilterBar} from './filterBar.js';
 
-export class ProjectsPage {
+export class BoardsPage {
     /** `onClearSearch` empties the window's search box. */
-    constructor({icons, actions, settings, onClearSearch}) {
+    constructor({icons, actions, settings, projects, onClearSearch}) {
+        this._projects = projects;
         this._icons = icons;
         this._actions = actions;
         this._settings = settings;
@@ -67,6 +68,8 @@ export class ProjectsPage {
     }
 
     update(state) {
+        // Board names are projects too: they stay in Settings → Projects.
+        this._projects.noteBoards(state.sources.flatMap(src => (src.boards ?? []).map(board => board.title)));
         this._state = state;
         const status = statusText(state);
         if (status) {
@@ -90,8 +93,8 @@ export class ProjectsPage {
             return;
         }
         if (!readable.some(src => (src.boards ?? []).some(board => board.drafts.length > 0))) {
-            this._status('object-select-symbolic', _('No draft items'),
-                _('Issues and pull requests on your boards are in their own lists.'));
+            this._status('object-select-symbolic', _('Nothing on your project boards yet'),
+                _('Cards you add to your GitHub Project boards show up here.'));
             return;
         }
 
@@ -110,7 +113,7 @@ export class ProjectsPage {
         if (matching.every(({boards}) => boards.length === 0)) {
             // Only the Assignee filter left nothing (it starts as you).
             const empty = new Adw.PreferencesGroup();
-            empty.add(new Adw.ActionRow({title: this._bar.isDefault ? _('No drafts assigned to you') : _('Nothing matches these filters'),
+            empty.add(new Adw.ActionRow({title: this._bar.isDefault ? _('No board items assigned to you') : _('Nothing matches these filters'),
                 use_markup: false, css_classes: ['dim-label']}));
             this._add(empty);
             return;
@@ -133,21 +136,18 @@ export class ProjectsPage {
                     css_classes: ['flat'], valign: Gtk.Align.CENTER});
                 open.connect('clicked', () => this._actions.open(board.url));
             }
-            const id = groupCollapseId('projects', src.key, board.projectId);
+            const id = groupCollapseId('boards', src.key, board.projectId);
             const collapsed = isGroupCollapsed(collapsedGroups, id, this._terms);
             const group = collapsibleGroup({
                 title: board.title, count: board.drafts.length, collapsed, toggleable: this._terms.length === 0,
                 suffix: open,
                 onToggle: () => {
                     this._settings.set_strv('collapsed-groups', toggleId(this._settings.get_strv('collapsed-groups'), id));
-                    this.update(this._state);
                 },
             });
-            if (!collapsed) {
-                for (const status of groupDraftsByStatus(board)) {
-                    for (const draft of status.drafts)
-                        group.add(this._draftRow(board, draft, status.status, state.busy));
-                }
+            for (const status of groupDraftsByStatus(board)) {
+                for (const draft of status.drafts)
+                    group.add(this._draftRow(board, draft, status.status, state.busy));
             }
             this._add(group);
         }
