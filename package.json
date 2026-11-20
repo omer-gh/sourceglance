@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "repository": "github:omer-gh/sourceglance",
   "scripts": {
-    "lint": "eslint src tests tools",
+    "lint": "eslint src tests tools desktop/src desktop/vite.config.js",
     "test": "node --test tests/*.test.js"
   },
   "devDependencies": {

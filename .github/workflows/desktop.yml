@@ -1,0 +1,67 @@
+name: Desktop (macOS)
+
+# The macOS app in desktop/: the installer (.pkg) and a .dmg. Builds are unsigned for now
+# (see docs/installing-macos.md).
+
+on:
+  push:
+    branches: [main]
+    paths: ['desktop/**', 'src/lib/**', 'package.json', 'LICENSE', 'NOTICE', '.github/workflows/desktop.yml']
+  pull_request:
+    paths: ['desktop/**', 'src/lib/**', 'package.json', 'LICENSE', 'NOTICE', '.github/workflows/desktop.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-latest   # arm64; the x86_64 half is cross-compiled
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal -c clippy -c rustfmt
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - name: Lint and test src/lib
+        run: |
+          npm ci
+          npm run lint
+          npm test
+      - name: Rust format, lints and tests
+        working-directory: desktop/src-tauri
+        run: |
+          # The app's version is the root package.json's; the crate must match it.
+          want=$(node -p "require('../../package.json').version")
+          grep -qx "version = \"$want\"" Cargo.toml || { echo "Cargo.toml version isn't $want"; exit 1; }
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+      - name: Build the universal app and .dmg (unsigned)
+        working-directory: desktop
+        run: |
+          npm ci
+          npx tauri build --target universal-apple-darwin --bundles app,dmg
+      - name: Check both architectures are in the binary
+        run: |
+          bin="desktop/src-tauri/target/universal-apple-darwin/release/bundle/macos/Source Glance.app/Contents/MacOS/sourceglance"
+          lipo -info "$bin"
+          lipo "$bin" -verify_arch arm64 x86_64
+      - name: Build the installer (.pkg) and checksums
+        run: |
+          bundle=desktop/src-tauri/target/universal-apple-darwin/release/bundle
+          pkg=$(desktop/tools/build-pkg.sh "$bundle/macos/Source Glance.app" "$bundle/pkg")
+          # It installs the app and nothing else, and runs no scripts.
+          desktop/tools/check-pkg.sh "$pkg"
+          mkdir -p dist-macos
+          cp "$pkg" "$bundle"/dmg/*.dmg dist-macos/
+          (cd dist-macos && shasum -a 256 * > SHA256SUMS && cat SHA256SUMS)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sourceglance-macos-unsigned
+          path: dist-macos/
+          if-no-files-found: error
+          retention-days: 14

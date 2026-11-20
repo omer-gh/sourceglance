@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Source Glance</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <header class="titlebar">
+    <h1>Source Glance</h1>
+    <div class="titlebar-actions">
+      <span id="status" class="status" role="status"></span>
+      <button id="refresh" type="button">Refresh</button>
+      <button id="show-accounts" type="button">Accounts</button>
+      <button id="show-settings" type="button">Settings</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="accounts" class="panel" hidden aria-labelledby="accounts-title">
+      <h2 id="accounts-title">Accounts</h2>
+      <ul id="account-list" class="account-list"></ul>
+      <p id="no-accounts" class="hint" hidden>No account yet. Add one to see what's assigned to you.</p>
+      <p id="accounts-message" class="hint" role="status"></p>
+
+      <form id="add-account" class="add-account">
+        <h3>Add an account</h3>
+        <label>Platform
+          <select id="platform">
+            <option value="github">GitHub</option>
+            <option value="gitlab">GitLab</option>
+          </select>
+        </label>
+        <label>Instance
+          <input id="instance" type="text" placeholder="github.com, or your own instance" autocomplete="off" spellcheck="false">
+        </label>
+        <fieldset>
+          <legend>Sign in with</legend>
+          <label><input type="radio" name="method" value="device" checked> Browser sign-in</label>
+          <label><input type="radio" name="method" value="pat"> Personal access token</label>
+        </fieldset>
+        <label id="token-row" hidden>Token
+          <input id="token" type="password" autocomplete="off" spellcheck="false">
+        </label>
+        <div class="form-actions">
+          <button type="submit">Add account</button>
+          <button id="cancel-sign-in" type="button" hidden>Cancel</button>
+        </div>
+        <p id="sign-in-message" class="hint" role="status"></p>
+      </form>
+    </section>
+
+    <section id="settings" class="panel" hidden aria-labelledby="settings-title">
+      <h2 id="settings-title">Settings</h2>
+      <form class="add-account" id="settings-form">
+        <h3>Menu bar</h3>
+        <label>Layout
+          <select id="layout">
+            <option value="separate">Separate: one item per list</option>
+            <option value="tabs">Grouped: one item, a tab per list (best with the notch)</option>
+          </select>
+        </label>
+        <fieldset>
+          <legend>Lists</legend>
+          <label><input type="checkbox" name="button" value="issues"> Issues</label>
+          <label><input type="checkbox" name="button" value="prs"> Pull requests</label>
+          <label><input type="checkbox" name="button" value="projects"> Projects</label>
+        </fieldset>
+        <h3>System</h3>
+        <label class="inline"><input id="dock-icon" type="checkbox"> Show in the Dock</label>
+        <label class="inline"><input id="start-at-login" type="checkbox"> Start automatically at login</label>
+        <p id="settings-message" class="hint" role="status"></p>
+        <h3>Uninstall</h3>
+        <p class="hint">Moves Source Glance to the Trash and quits. Your GitHub and GitLab accounts aren't touched.</p>
+        <label class="inline"><input id="remove-data" type="checkbox"> Also remove my sign-ins from the Keychain, and my settings</label>
+        <div class="row-buttons">
+          <button type="button" id="uninstall" class="danger">Uninstall Source Glance…</button>
+        </div>
+        <div id="uninstall-confirm" class="confirm" hidden>
+          <p id="uninstall-question"></p>
+          <div class="row-buttons">
+            <button type="button" id="uninstall-cancel">Cancel</button>
+            <button type="button" id="uninstall-yes" class="danger">Uninstall</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <section id="lists" class="panel" aria-label="Lists">
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-list="issues" aria-selected="true">Issues <span class="badge" data-count="issues">0</span></button>
+        <button role="tab" data-list="prs" aria-selected="false">Pull requests <span class="badge" data-count="prs">0</span></button>
+        <button role="tab" data-list="projects" aria-selected="false">Projects <span class="badge" data-count="projects">0</span></button>
+      </nav>
+      <div id="list-body"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

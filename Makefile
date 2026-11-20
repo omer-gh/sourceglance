@@ -24,7 +24,7 @@ pack:
 	@echo "Built $(ZIP)"
 
 lint:
-	npx eslint src tests tools
+	npx eslint src tests tools desktop/src desktop/vite.config.js
 
 test:
 	node --test tests/*.test.js

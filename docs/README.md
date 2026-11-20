@@ -3,6 +3,7 @@
 ## For users
 
 - [Installation and usage](../README.md#installation)
+- [Installing on macOS](installing-macos.md): the Tauri app in development (#10), and opening an unsigned app
 - [Handling tokens safely](../SECURITY.md#handling-tokens-safely)
 
 ## Product and design
