@@ -460,3 +460,10 @@ pre code { background: none; padding: 0; }
   .try-topbar .mock-bar { height: auto; min-height: 36px; padding: 4px; justify-content: flex-end; }
   .try-topbar .mock-group.tabs { flex-wrap: wrap; height: auto; }
 }
+
+/* Screenshots */
+.screens { padding: 3.5rem 0; }
+.gallery { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); margin-top: 1.5rem; }
+.gallery figure { margin: 0; }
+.gallery img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid rgb(127 127 127 / 30%); }
+.gallery figcaption { margin-top: .4rem; font-size: .9rem; opacity: .8; }

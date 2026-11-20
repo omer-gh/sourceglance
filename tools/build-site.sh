@@ -21,6 +21,9 @@ cp "$ROOT/site/demo.js" "$ROOT/site/playground.js" "$OUT/"
 for name in sourceglance checklist issue issue-closed git-pull-request label exit; do
     cp "$ROOT/src/icons/$name-symbolic.svg" "$OUT/images/"
 done
+# The screenshots (made from invented data, see tools/screenshots/) for the gallery.
+mkdir -p "$OUT/images/screens"
+cp "$ROOT"/docs/images/*.png "$OUT/images/screens/"
 
 release="$(gh api "repos/$REPO/releases?per_page=20" --jq '[.[] | select(.draft | not)][0] // {}')"
 asset() { # asset <name pattern> → download URL, or the Releases page

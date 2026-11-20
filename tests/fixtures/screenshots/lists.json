@@ -1,0 +1,512 @@
+{
+ "status": "ready",
+ "sources": [
+  {
+   "account": {
+    "id": "github:github.com:jane-doe",
+    "platform": "github",
+    "base": "https://github.com",
+    "login": "jane-doe",
+    "method": "pat",
+    "clientId": null
+   },
+   "key": "github:github.com:jane-doe",
+   "title": "GitHub · @jane-doe",
+   "assignee": "@jane-doe · GitHub",
+   "platform": "github",
+   "login": "jane-doe",
+   "status": "ready",
+   "updatedAt": "2026-11-20T16:09:21.206Z",
+   "error": null,
+   "groups": [
+    {
+     "repo": "acme-labs/web",
+     "issues": [
+      {
+       "kind": "issue",
+       "reason": "assigned",
+       "number": 412,
+       "title": "Checkout button is unresponsive on the order summary page",
+       "url": "https://github.com/acme-labs/web/issues/412",
+       "repo": "acme-labs/web",
+       "nodeId": "FAKE_acme-labs_web_412",
+       "state": "open",
+       "labels": [
+        {
+         "name": "bug",
+         "color": "d73a4a"
+        },
+        {
+         "name": "checkout",
+         "color": "0e8a16"
+        }
+       ],
+       "assignees": [
+        "jane-doe"
+       ],
+       "comments": 3,
+       "updatedAt": "2026-11-20T15:56:21.206Z",
+       "accountId": "github:github.com:jane-doe"
+      },
+      {
+       "kind": "issue",
+       "reason": "assigned",
+       "number": 405,
+       "title": "Add dark mode to the account settings screen",
+       "url": "https://github.com/acme-labs/web/issues/405",
+       "repo": "acme-labs/web",
+       "nodeId": "FAKE_acme-labs_web_405",
+       "state": "open",
+       "labels": [
+        {
+         "name": "enhancement",
+         "color": "a2eeef"
+        }
+       ],
+       "assignees": [
+        "jane-doe"
+       ],
+       "comments": 0,
+       "updatedAt": "2026-11-20T14:35:21.206Z",
+       "accountId": "github:github.com:jane-doe"
+      }
+     ]
+    },
+    {
+     "repo": "acme-labs/api",
+     "issues": [
+      {
+       "kind": "issue",
+       "reason": "assigned",
+       "number": 188,
+       "title": "Rate limit headers are missing on the search endpoint",
+       "url": "https://github.com/acme-labs/api/issues/188",
+       "repo": "acme-labs/api",
+       "nodeId": "FAKE_acme-labs_api_188",
+       "state": "open",
+       "labels": [
+        {
+         "name": "bug",
+         "color": "d73a4a"
+        },
+        {
+         "name": "api",
+         "color": "5319e7"
+        }
+       ],
+       "assignees": [
+        "jane-doe"
+       ],
+       "comments": 1,
+       "updatedAt": "2026-11-20T13:30:21.206Z",
+       "accountId": "github:github.com:jane-doe"
+      },
+      {
+       "kind": "issue",
+       "reason": "assigned",
+       "number": 181,
+       "title": "Document the pagination parameters",
+       "url": "https://github.com/acme-labs/api/issues/181",
+       "repo": "acme-labs/api",
+       "nodeId": "FAKE_acme-labs_api_181",
+       "state": "open",
+       "labels": [
+        {
+         "name": "docs",
+         "color": "0075ca"
+        }
+       ],
+       "assignees": [
+        "jane-doe"
+       ],
+       "comments": 0,
+       "updatedAt": "2026-11-20T09:10:21.206Z",
+       "accountId": "github:github.com:jane-doe"
+      }
+     ]
+    },
+    {
+     "repo": "acme-labs/docs",
+     "issues": [
+      {
+       "kind": "issue",
+       "reason": "assigned",
+       "number": 57,
+       "title": "Getting started guide skips the install step",
+       "url": "https://github.com/acme-labs/docs/issues/57",
+       "repo": "acme-labs/docs",
+       "nodeId": "FAKE_acme-labs_docs_57",
+       "state": "open",
+       "labels": [
+        {
+         "name": "docs",
+         "color": "0075ca"
+        }
+       ],
+       "assignees": [
+        "jane-doe"
+       ],
+       "comments": 0,
+       "updatedAt": "2026-11-20T05:30:21.206Z",
+       "accountId": "github:github.com:jane-doe"
+      }
+     ]
+    },
+    {
+     "repo": "jane-doe/notes",
+     "issues": [
+      {
+       "kind": "issue",
+       "reason": "assigned",
+       "number": 12,
+       "title": "Sync notes between devices",
+       "url": "https://github.com/jane-doe/notes/issues/12",
+       "repo": "jane-doe/notes",
+       "nodeId": "FAKE_jane-doe_notes_12",
+       "state": "open",
+       "labels": [
+        {
+         "name": "idea",
+         "color": "fbca04"
+        }
+       ],
+       "assignees": [
+        "jane-doe"
+       ],
+       "comments": 0,
+       "updatedAt": "2026-11-19T15:10:21.206Z",
+       "accountId": "github:github.com:jane-doe"
+      }
+     ]
+    }
+   ],
+   "prGroups": [
+    {
+     "repo": "acme-labs/web",
+     "issues": [
+      {
+       "kind": "pr",
+       "reason": "assigned",
+       "number": 419,
+       "title": "Fix focus ring on the checkout form",
+       "url": "https://github.com/acme-labs/web/pull/419",
+       "repo": "acme-labs/web",
+       "nodeId": "FAKE_acme-labs_web_419",
+       "state": "open",
+       "labels": [
+        {
+         "name": "accessibility",
+         "color": "1d76db"
+        }
+       ],
+       "assignees": [
+        "jane-doe"
+       ],
+       "comments": 2,
+       "updatedAt": "2026-11-20T15:30:21.206Z",
+       "accountId": "github:github.com:jane-doe"
+      }
+     ]
+    },
+    {
+     "repo": "acme-labs/api",
+     "issues": [
+      {
+       "kind": "pr",
+       "reason": "assigned",
+       "number": 190,
+       "title": "Return a retry-after header when throttled",
+       "url": "https://github.com/acme-labs/api/pull/190",
+       "repo": "acme-labs/api",
+       "nodeId": "FAKE_acme-labs_api_190",
+       "state": "open",
+       "labels": [
+        {
+         "name": "api",
+         "color": "5319e7"
+        }
+       ],
+       "assignees": [
+        "jane-doe"
+       ],
+       "comments": 0,
+       "updatedAt": "2026-11-20T12:40:21.206Z",
+       "accountId": "github:github.com:jane-doe"
+      }
+     ]
+    },
+    {
+     "repo": "acme-labs/mobile",
+     "issues": [
+      {
+       "kind": "pr",
+       "reason": "assigned",
+       "number": 73,
+       "title": "Update the onboarding illustrations",
+       "url": "https://github.com/acme-labs/mobile/pull/73",
+       "repo": "acme-labs/mobile",
+       "nodeId": "FAKE_acme-labs_mobile_73",
+       "state": "open",
+       "labels": [],
+       "assignees": [],
+       "comments": 0,
+       "updatedAt": "2026-11-20T01:10:21.206Z",
+       "accountId": "github:github.com:jane-doe"
+      }
+     ]
+    }
+   ],
+   "issueTotal": 6,
+   "issueShown": 6,
+   "prTotal": 3,
+   "prShown": 3,
+   "closedCounts": {
+    "issues": 3,
+    "prs": 5
+   },
+   "boards": [
+    {
+     "projectId": "FAKE_PVT_1",
+     "title": "Roadmap",
+     "url": "https://github.com/orgs/acme-labs/projects/3",
+     "closed": false,
+     "fieldId": "FAKE_F1",
+     "options": [
+      {
+       "id": "a",
+       "name": "Todo"
+      },
+      {
+       "id": "b",
+       "name": "In progress"
+      },
+      {
+       "id": "c",
+       "name": "Done"
+      }
+     ],
+     "viewer": {
+      "id": "U_1",
+      "login": "jane-doe"
+     },
+     "truncated": false,
+     "drafts": [
+      {
+       "itemId": "FAKE_D1",
+       "draftId": "FAKE_DI1",
+       "title": "Plan the spring release",
+       "status": "In progress",
+       "assignees": [
+        {
+         "login": "jane-doe"
+        }
+       ],
+       "optionId": "b"
+      },
+      {
+       "itemId": "FAKE_D2",
+       "draftId": "FAKE_DI2",
+       "title": "Collect feedback on the new navigation",
+       "status": "Todo",
+       "assignees": [
+        {
+         "login": "jane-doe"
+        }
+       ],
+       "optionId": "a"
+      },
+      {
+       "itemId": "FAKE_D3",
+       "draftId": "FAKE_DI3",
+       "title": "Write the migration notes",
+       "status": "Done",
+       "assignees": [
+        {
+         "login": "jane-doe"
+        }
+       ],
+       "optionId": "c"
+      }
+     ]
+    }
+   ],
+   "allBoards": [
+    {
+     "projectId": "FAKE_PVT_1",
+     "title": "Roadmap",
+     "url": "https://github.com/orgs/acme-labs/projects/3",
+     "closed": false,
+     "fieldId": "FAKE_F1",
+     "options": [
+      {
+       "id": "a",
+       "name": "Todo"
+      },
+      {
+       "id": "b",
+       "name": "In progress"
+      },
+      {
+       "id": "c",
+       "name": "Done"
+      }
+     ],
+     "viewer": {
+      "id": "U_1",
+      "login": "jane-doe"
+     },
+     "truncated": false,
+     "drafts": [
+      {
+       "itemId": "FAKE_D1",
+       "draftId": "FAKE_DI1",
+       "title": "Plan the spring release",
+       "status": "In progress",
+       "assignees": [
+        {
+         "login": "jane-doe"
+        }
+       ],
+       "optionId": "b"
+      },
+      {
+       "itemId": "FAKE_D2",
+       "draftId": "FAKE_DI2",
+       "title": "Collect feedback on the new navigation",
+       "status": "Todo",
+       "assignees": [
+        {
+         "login": "jane-doe"
+        }
+       ],
+       "optionId": "a"
+      },
+      {
+       "itemId": "FAKE_D3",
+       "draftId": "FAKE_DI3",
+       "title": "Write the migration notes",
+       "status": "Done",
+       "assignees": [
+        {
+         "login": "jane-doe"
+        }
+       ],
+       "optionId": "c"
+      }
+     ]
+    }
+   ],
+   "boardsError": null
+  },
+  {
+   "account": {
+    "id": "gitlab:gitlab.com:jane-doe",
+    "platform": "gitlab",
+    "base": "https://gitlab.com",
+    "login": "jane-doe",
+    "method": "pat",
+    "clientId": null
+   },
+   "key": "gitlab:gitlab.com:jane-doe",
+   "title": "GitLab · @jane-doe",
+   "assignee": "@jane-doe · GitLab",
+   "platform": "gitlab",
+   "login": "jane-doe",
+   "status": "ready",
+   "updatedAt": "2026-11-20T16:09:21.206Z",
+   "error": null,
+   "groups": [
+    {
+     "repo": "acme-labs/infra",
+     "issues": [
+      {
+       "kind": "issue",
+       "reason": "assigned",
+       "platform": "gitlab",
+       "number": 31,
+       "title": "Rotate the staging certificates before they expire",
+       "repo": "acme-labs/infra",
+       "url": "https://gitlab.com/acme-labs/infra/-/issues/31",
+       "nodeId": null,
+       "state": "open",
+       "labels": [
+        {
+         "name": "ops",
+         "color": "c5def5"
+        }
+       ],
+       "assignees": [
+        "jane-doe"
+       ],
+       "comments": 0,
+       "updatedAt": "2026-11-20T14:55:21.206Z",
+       "accountId": "gitlab:gitlab.com:jane-doe"
+      },
+      {
+       "kind": "issue",
+       "reason": "assigned",
+       "platform": "gitlab",
+       "number": 28,
+       "title": "Alert noise from the nightly backup job",
+       "repo": "acme-labs/infra",
+       "url": "https://gitlab.com/acme-labs/infra/-/issues/28",
+       "nodeId": null,
+       "state": "open",
+       "labels": [
+        {
+         "name": "ops",
+         "color": "c5def5"
+        }
+       ],
+       "assignees": [
+        "jane-doe"
+       ],
+       "comments": 4,
+       "updatedAt": "2026-11-20T04:30:21.206Z",
+       "accountId": "gitlab:gitlab.com:jane-doe"
+      }
+     ]
+    }
+   ],
+   "prGroups": [
+    {
+     "repo": "acme-labs/infra",
+     "issues": [
+      {
+       "kind": "pr",
+       "reason": "review",
+       "platform": "gitlab",
+       "number": 9,
+       "title": "Move the cache settings into one file",
+       "repo": "acme-labs/infra",
+       "url": "https://gitlab.com/acme-labs/infra/-/merge_requests/9",
+       "nodeId": null,
+       "state": "open",
+       "labels": [],
+       "assignees": [],
+       "comments": 1,
+       "updatedAt": "2026-11-20T11:10:21.206Z",
+       "accountId": "gitlab:gitlab.com:jane-doe"
+      }
+     ]
+    }
+   ],
+   "issueTotal": 2,
+   "issueShown": 2,
+   "prTotal": 1,
+   "prShown": 1,
+   "closedCounts": {
+    "issues": 1,
+    "prs": 2
+   },
+   "boards": null,
+   "allBoards": null,
+   "boardsError": null
+  }
+ ],
+ "error": null,
+ "busy": [],
+ "refreshing": false,
+ "intervalMinutes": 10,
+ "recentlyClosed": []
+}

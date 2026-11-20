@@ -19,6 +19,7 @@
         <a class="wide-only" href="#new">What's new</a>
           <a class="wide-only" href="#in-action">In action</a>
           <a class="wide-only" href="#try">Try it</a>
+          <a class="wide-only" href="#screens">Screenshots</a>
         <a class="wide-only" href="#features">Features</a>
         <a href="#install">Install</a>
         <a href="#contribute">Contribute</a>
@@ -61,17 +62,15 @@
             </span>
           </div>
           <div class="mock-menu" data-el="menu">
-            <div class="menu-head"><b>Issues</b><span><i class="ic ic-label"></i>All labels ›</span></div>
-            <div class="menu-section">GitHub <em data-el="gh">2</em></div>
-            <div class="menu-repo">example/web-app</div>
-            <div class="menu-item" data-el="item42"><i class="ic ic-issue k-issue"></i><span>#42</span> Fix the login redirect</div>
+            <div class="menu-head"><b>Issues</b></div>
+            <div class="menu-section">Storefront <em data-el="gh">2</em></div>
+            <div class="menu-item" data-el="item42"><i class="ic ic-issue k-issue"></i><span>example/web-app#42</span> Fix the login redirect</div>
             <div class="menu-sub" data-el="sub42">
               <span>Open on GitHub</span><span>Comment…</span><span data-el="close42">Close issue…</span><span>Assignees…</span><span>Labels…</span>
             </div>
-            <div class="menu-item"><i class="ic ic-issue k-issue"></i><span>#37</span> Dark mode for settings</div>
-            <div class="menu-section">GitLab <em>1</em></div>
-            <div class="menu-repo">acme/api</div>
-            <div class="menu-item"><i class="ic ic-issue k-issue"></i><span>#12</span> Retry on rate limits</div>
+            <div class="menu-item"><i class="ic ic-issue k-issue"></i><span>example/web-app#37</span> Dark mode for settings</div>
+            <div class="menu-section">Acme Docs <em>1</em></div>
+            <div class="menu-item"><i class="ic ic-issue k-issue"></i><span>acme/api#12</span> Retry on rate limits</div>
             <div class="menu-foot">4 closed issues still assigned to you</div>
           </div>
           <div class="shell-dialog" data-el="dialog">
@@ -87,31 +86,32 @@
     <section id="new" class="whats-new">
       <div class="wrap">
         <p class="kicker">New in this release</p>
-        <h2>Widgets you arrange, sizes you pick, the whole team in view</h2>
+        <h2>Lists grouped your way, names that stay yours, a tidier Settings</h2>
         <div class="new-grid">
           <article>
-            <i class="feat ic-widgets"></i>
-            <h3>Widgets in the window</h3>
-            <p>Glance → Widgets draws your cards on your wallpaper at their real size. Drag to
-              rearrange, and choose which ones also sit on the desktop.</p>
-          </article>
-          <article>
-            <i class="feat ic-size"></i>
-            <h3>Sizes and arrangements</h3>
-            <p>Small, Medium or Large, per card or for all. On the desktop: a grid at the top
-              right, a column at either edge, or a row along the top or bottom.</p>
-          </article>
-          <article>
             <i class="feat ic-filter"></i>
-            <h3>Custom widgets</h3>
-            <p>Build a card from filters: account, repositories, labels, review requests or
-              search words. Name it, pick an icon; it stays through updates.</p>
+            <h3>Flat lists, grouped your way</h3>
+            <p>One list across all your accounts, grouped by project, platform or organization, in
+              the window, the top bar and the widgets. Each group is a plain heading with its count.</p>
           </article>
           <article>
             <i class="feat ic-team"></i>
-            <h3>The whole team, custom fields</h3>
-            <p>The window can show everything open in your repositories, whoever has it. Each
-              item's ⋮ menu edits its custom and project fields.</p>
+            <h3>Organizations and projects</h3>
+            <p>Name an organization once, even across GitHub and GitLab, and group your
+              repositories into projects: rename in place, drag to move, disband. It all stays in
+              Source Glance.</p>
+          </article>
+          <article>
+            <i class="feat ic-size"></i>
+            <h3>Limit repositories and boards</h3>
+            <p>Per account: widen or limit what the sign-in can reach on GitHub, choose the
+              repositories you watch, search public ones to add, and hide the boards you don't need.</p>
+          </article>
+          <article>
+            <i class="feat ic-widgets"></i>
+            <h3>Settings, page by page</h3>
+            <p>Accounts, Preferences, Startup and About each have a page. The Accounts card and a
+              Top bar switch are one click away.</p>
           </article>
         </div>
       </div>
@@ -149,7 +149,7 @@
                 <span class="sub-i on"><i class="ic ic-list"></i>All Tasks<em data-el="count">7</em></span>
                 <span class="sub-i"><i class="ic ic-check"></i>Issues<em>4</em></span>
                 <span class="sub-i"><i class="ic ic-pr"></i>Pull requests<em>2</em></span>
-                <span class="sub-i"><i class="ic ic-checklist"></i>Projects<em>1</em></span>
+                <span class="sub-i"><i class="ic ic-checklist"></i>Project Boards<em>1</em></span>
               </div>
               <div class="win-main">
                 <div class="win-head"><b>All Tasks</b><small data-el="sub"></small><span class="head-btn"><i class="ic ic-user"></i>Accounts</span></div>
@@ -244,14 +244,14 @@
         <div class="scene" id="scene-board" role="tabpanel" aria-labelledby="tab-board" hidden>
           <div class="scene-copy">
             <h3>Keep the board honest, in one click</h3>
-            <p>Projects lists the draft cards on your GitHub project boards, board by board, with
+            <p>Project Boards lists the draft cards on your GitHub project boards, board by board, with
               their status. Move one on and the board on GitHub is up to date for everyone. Issues
               and pull requests on a board get the same button in their own lists.</p>
           </div>
-          <figure class="demo win-wrap" data-scene="board" aria-label="Animation: in the Projects list, a draft card's Move to status button opens the Move dialog, Done is chosen, and the card's status changes to Done">
+          <figure class="demo win-wrap" data-scene="board" aria-label="Animation: in the Project Boards list, a draft card's Move to status button opens the Move dialog, Done is chosen, and the card's status changes to Done">
             <div class="win">
               <div class="win-main wide">
-                <div class="win-head"><b>Projects</b></div>
+                <div class="win-head"><b>Project Boards</b></div>
                 <div class="group-h"><i class="arrow down"></i><b>Team board</b><em>3</em><i class="ic ic-external"></i></div>
                 <div class="rows">
                   <div class="row"><i class="ic ic-draft k-draft"></i><p><b>Write the release notes</b><small>Todo</small></p>
@@ -275,7 +275,7 @@
         <div class="scene" id="scene-desk" role="tabpanel" aria-labelledby="tab-desk" hidden>
           <div class="scene-copy">
             <h3>Your day, right on the wallpaper</h3>
-            <p>Summary, Issues, Pull requests, Projects and widgets you make yourself sit on your
+            <p>Summary, Issues, Pull requests, Project Boards and widgets you make yourself sit on your
               desktop, Small, Medium or Large. Arrange them in the window or drag them on the desktop;
               they update with the top bar, so a glance between windows is enough.</p>
           </div>
@@ -296,20 +296,26 @@
         <div class="try-block">
           <div class="try-copy">
             <h3>The top bar, your way</h3>
-            <p>Show Issues, Pull requests and Projects as one tinted group or as tabs, each with its
-              live count. Turn off the lists you don't need. Click a button to open its menu, grouped
-              by account and repository.</p>
+            <p>Show Issues, Pull requests and Project Boards as one tinted group or as tabs, each with
+              its live count. Turn off the lists you don't need. Click a button to open its menu, one
+              flat list grouped the way you choose.</p>
             <div class="try-controls">
               <span class="try-label" id="tb-layout-label">Layout</span>
               <div class="segmented" role="radiogroup" aria-labelledby="tb-layout-label">
                 <button type="button" role="radio" aria-checked="true" data-layout="group">Group</button>
                 <button type="button" role="radio" aria-checked="false" data-layout="tabs">Tabs</button>
               </div>
+              <span class="try-label" id="tb-group-label">Group by</span>
+              <div class="segmented" role="radiogroup" aria-labelledby="tb-group-label">
+                <button type="button" role="radio" aria-checked="true" data-group="project">Project</button>
+                <button type="button" role="radio" aria-checked="false" data-group="platform">Platform</button>
+                <button type="button" role="radio" aria-checked="false" data-group="organization">Organization</button>
+              </div>
               <span class="try-label" id="tb-lists-label">Lists</span>
               <div class="toggles" role="group" aria-labelledby="tb-lists-label">
                 <button type="button" aria-pressed="true" data-list="issues"><i class="ic ic-check"></i>Issues</button>
                 <button type="button" aria-pressed="true" data-list="prs"><i class="ic ic-pr"></i>Pull requests</button>
-                <button type="button" aria-pressed="true" data-list="projects"><i class="ic ic-checklist"></i>Projects</button>
+                <button type="button" aria-pressed="true" data-list="projects"><i class="ic ic-checklist"></i>Project Boards</button>
               </div>
             </div>
           </div>
@@ -343,6 +349,33 @@
       </div>
     </section>
 
+    <section id="screens" class="screens">
+      <div class="wrap">
+        <h2>The window, as it looks today</h2>
+        <p class="section-lede">Screenshots made with invented accounts and items.</p>
+        <div class="gallery">
+          <figure><img src="images/screens/lists-by-project.png" width="1280" height="800" loading="lazy"
+            alt="The Issues list grouped by project: Storefront, Acme Docs and two repositories of their own, each group a plain heading with its count">
+            <figcaption>Group by Project</figcaption></figure>
+          <figure><img src="images/screens/lists-by-organization.png" width="1280" height="800" loading="lazy"
+            alt="The Issues list grouped by organization, shown as Acme Labs (@acme-labs) and Jane Doe (@jane-doe)">
+            <figcaption>Group by Organization</figcaption></figure>
+          <figure><img src="images/screens/all-tasks.png" width="1280" height="800" loading="lazy"
+            alt="All Tasks: issues and pull requests from GitHub and GitLab in one list, newest first">
+            <figcaption>All Tasks</figcaption></figure>
+          <figure><img src="images/screens/project-boards.png" width="1280" height="800" loading="lazy"
+            alt="Project Boards: the Roadmap board with its draft items and their statuses">
+            <figcaption>Project Boards</figcaption></figure>
+          <figure><img src="images/screens/preferences.png" width="1280" height="800" loading="lazy"
+            alt="Settings, Preferences: the Organizations tab, with a name you can type or pick for each organization">
+            <figcaption>Preferences</figcaption></figure>
+          <figure><img src="images/screens/lists-by-platform.png" width="1280" height="800" loading="lazy"
+            alt="The Issues list grouped by platform: GitHub and GitLab">
+            <figcaption>Group by Platform</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
     <section id="features" class="features">
       <div class="wrap">
         <h2>Everything assigned to you, without the tab hunt</h2>
@@ -350,10 +383,10 @@
           <article>
             <i class="feat ic-check"></i>
             <h3>Top-bar buttons</h3>
-            <p>Issues, Pull requests and Projects as one tinted group or as tabs, each with its
-              live count. Filter by label, collapse the repositories you don't need right now;
-              closed items are counted at the bottom. Menus keep a steady width sized to your
-              screen.</p>
+            <p>Issues, Pull requests and Project Boards as one tinted group or as tabs, each with its
+              live count. One flat list across your accounts, grouped by project, platform or
+              organization; closed items are counted at the bottom. Menus keep a steady width sized
+              to your screen.</p>
           </article>
           <article>
             <i class="feat ic-pr"></i>
@@ -365,7 +398,7 @@
           <article>
             <i class="feat ic-sourceglance"></i>
             <h3>Every account, self-hosted too</h3>
-            <p>Add several GitHub and GitLab accounts, each with its own collapsible section. A
+            <p>Add several GitHub and GitLab accounts; their items show together in one list. A
               guided setup connects GitHub Enterprise Server and GitLab self-managed, and counts
               add up across them all.</p>
           </article>
@@ -373,14 +406,15 @@
             <i class="feat ic-checklist"></i>
             <h3>Main window</h3>
             <p>A slim sidebar: Glance for your widgets and top bar, Tasks for All Tasks, Issues,
-              Pull requests and Projects, each opening its menu right beside it. Click a title
+              Pull requests and Project Boards, and Settings with a page for Accounts, Preferences,
+              Startup and About, each opening its menu right beside it. Click a title
               to preview it, Markdown rendered and comments as a feed. A red ! on Refresh says
               what failed and how to fix it.</p>
           </article>
           <article>
             <i class="feat ic-label"></i>
             <h3>Desktop widgets</h3>
-            <p>Summary, Issues, Pull requests and Projects cards, or ones you make from
+            <p>Summary, Issues, Pull requests and Project Boards cards, or ones you make from
               filters, on your desktop. Arrange them in the window, set each one's size, opacity and where they sit,
               and set the wallpaper they're made for in one click.</p>
           </article>

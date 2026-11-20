@@ -16,8 +16,24 @@ const LISTS = [
     {id: 'all', name: 'All Tasks', icon: 'ic-list', kinds: ['issue', 'pr', 'draft']},
     {id: 'issues', name: 'Issues', icon: 'ic-check', kinds: ['issue']},
     {id: 'prs', name: 'Pull requests', icon: 'ic-pr', kinds: ['pr']},
-    {id: 'projects', name: 'Projects', icon: 'ic-checklist', kinds: ['draft']},
+    {id: 'projects', name: 'Project Boards', icon: 'ic-checklist', kinds: ['draft']},
 ];
+
+// How the top bar menu groups its lists (Group by in Glance → System Tray).
+const PROJECT_OF = {'example/web-app': 'Storefront', 'acme/api': 'Storefront', 'acme/docs': 'Acme Docs'};
+const ORGANIZATIONS = {example: 'Example Co (@example)', acme: 'Acme (@acme)'};
+
+function groupOf(item, by) {
+    if (item.kind === 'draft')
+        return 'Team board';
+    if (by === 'platform')
+        return item.account;
+    if (by === 'organization') {
+        const organization = item.repo.split('/')[0];
+        return ORGANIZATIONS[organization] ?? `@${organization}`;
+    }
+    return PROJECT_OF[item.repo] ?? item.repo;
+}
 
 const KIND_ICON = {issue: 'ic-issue k-issue', pr: 'ic-pr k-pr', draft: 'ic-draft k-draft'};
 
@@ -40,7 +56,7 @@ function itemRow(item) {
 function setupTopBar(root) {
     const $ = name => root.querySelector(`[data-el="${name}"]`);
     const section = root.closest('.try-block');
-    const state = {layout: 'group', lists: new Set(['issues', 'prs', 'projects']), open: 'issues'};
+    const state = {layout: 'group', group: 'project', lists: new Set(['issues', 'prs', 'projects']), open: 'issues'};
 
     const render = () => {
         const buttons = $('buttons');
@@ -68,24 +84,35 @@ function setupTopBar(root) {
         menu.hidden = !list;
         if (!list)
             return;
-        menu.append(el('div', {className: 'menu-head'}, [el('b', {textContent: list.name}),
-            el('span', {}, [icon('ic-label'), 'All labels ›'])]));
+        menu.append(el('div', {className: 'menu-head'}, [el('b', {textContent: list.name})]));
+        // One flat list across accounts: a plain heading per group, then its items.
         const items = ITEMS.filter(item => list.kinds.includes(item.kind));
-        for (const account of ['GitHub', 'GitLab']) {
-            const mine = items.filter(item => item.account === account);
-            if (mine.length === 0)
-                continue;
-            menu.append(el('div', {className: 'menu-section'}, [account, el('em', {textContent: mine.length})]));
-            for (const repo of new Set(mine.map(item => item.repo))) {
-                menu.append(el('div', {className: 'menu-repo', textContent: repo}));
-                for (const item of mine.filter(other => other.repo === repo)) {
-                    menu.append(el('div', {className: 'menu-item'}, [icon(KIND_ICON[item.kind]),
-                        el('span', {textContent: item.ref}), ` ${item.title}`]));
-                }
+        const groups = new Map();
+        for (const item of items) {
+            const group = groupOf(item, state.group);
+            if (!groups.has(group))
+                groups.set(group, []);
+            groups.get(group).push(item);
+        }
+        for (const [group, mine] of groups) {
+            menu.append(el('div', {className: 'menu-section'}, [group, el('em', {textContent: mine.length})]));
+            for (const item of mine) {
+                // The repository leads the reference when the heading isn't the repository.
+                const ref = item.kind === 'draft' || group === item.repo ? item.ref : `${item.repo}${item.ref}`;
+                menu.append(el('div', {className: 'menu-item'}, [icon(KIND_ICON[item.kind]),
+                    el('span', {textContent: ref}), ` ${item.title}`]));
             }
         }
     };
 
+    for (const button of section.querySelectorAll('[data-group]')) {
+        button.addEventListener('click', () => {
+            state.group = button.dataset.group;
+            for (const other of section.querySelectorAll('[data-group]'))
+                other.setAttribute('aria-checked', String(other === button));
+            render();
+        });
+    }
     for (const button of section.querySelectorAll('[data-layout]')) {
         button.addEventListener('click', () => {
             state.layout = button.dataset.layout;
