@@ -121,3 +121,8 @@ main { padding: 16px; display: grid; gap: 16px; }
 }
 
 .add-account label.inline { display: flex; gap: 6px; align-items: center; }
+
+.row-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+button.danger { color: var(--problem); }
+.confirm { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+.confirm p { margin: 0 0 8px; }

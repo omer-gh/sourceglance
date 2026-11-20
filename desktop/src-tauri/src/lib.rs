@@ -440,6 +440,97 @@ fn set_start_at_login(enabled: bool) -> Result<(), String> {
     }
 }
 
+/// Whether an app bundle sits in an Applications folder (/Applications or ~/Applications),
+/// where the installer puts it. A copy anywhere else, such as a build folder, isn't removed.
+fn installed_bundle(bundle: &std::path::Path) -> bool {
+    bundle.extension().is_some_and(|e| e == "app")
+        && bundle
+            .parent()
+            .and_then(|dir| dir.file_name())
+            .is_some_and(|name| name == "Applications")
+}
+
+/// The app's own folders: settings, caches and the web page's storage. Only folders named
+/// after the app's identifier, so nothing else can be deleted by mistake.
+fn data_dirs(app: &tauri::AppHandle) -> Vec<std::path::PathBuf> {
+    let identifier = app.config().identifier.clone();
+    let path = app.path();
+    let mut dirs: Vec<std::path::PathBuf> = [
+        path.app_config_dir(),
+        path.app_data_dir(),
+        path.app_local_data_dir(),
+        path.app_cache_dir(),
+    ]
+    .into_iter()
+    .filter_map(Result::ok)
+    .collect();
+    if let Ok(home) = path.home_dir() {
+        dirs.push(home.join("Library/WebKit").join(&identifier));
+        dirs.push(home.join("Library/HTTPStorages").join(&identifier));
+    }
+    dirs.sort();
+    dirs.dedup();
+    dirs.retain(|dir| {
+        dir.file_name()
+            .is_some_and(|name| name == identifier.as_str())
+    });
+    dirs
+}
+
+/// Uninstalls Source Glance: turns off the login item, optionally removes the sign-ins from
+/// the Keychain and the app's settings and caches, moves the app to the Trash, and quits.
+#[tauri::command]
+async fn uninstall(app: tauri::AppHandle, remove_data: bool) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let bundle = macos::app_bundle().ok_or("Source Glance isn't running from an app")?;
+    #[cfg(not(target_os = "macos"))]
+    let bundle = std::path::PathBuf::new();
+    if !installed_bundle(&bundle) {
+        return Err(format!(
+            "Source Glance isn't in an Applications folder ({}). Quit it and delete it yourself.",
+            bundle.display()
+        ));
+    }
+    if remove_data {
+        let ids: Vec<String> = app
+            .state::<AppState>()
+            .settings
+            .accounts()
+            .into_iter()
+            .map(|a| a.id)
+            .chain(["github.com".to_string(), "gitlab.com".to_string()])
+            .collect();
+        keychain(app.clone(), move |state| {
+            ids.iter().try_for_each(|id| state.secrets.clear(id))
+        })
+        .await?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        if macos::start_at_login() {
+            let _ = macos::set_start_at_login(false);
+        }
+        macos::move_to_trash(&bundle)?;
+        if let Ok(home) = app.path().home_dir() {
+            macos::forget_receipt(&home);
+        }
+    }
+    if remove_data {
+        for dir in data_dirs(&app) {
+            if dir.exists() {
+                let _ = std::fs::remove_dir_all(&dir);
+            }
+        }
+    }
+    // Answer JavaScript first, then quit.
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        handle.exit(0);
+    });
+    Ok(())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -527,6 +618,7 @@ pub fn run() {
             set_dock_icon,
             start_at_login,
             set_start_at_login,
+            uninstall,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Source Glance");
@@ -586,6 +678,21 @@ mod tests {
         assert_eq!(access, Access::Probing);
         let (_, access) = state.instance(net::GITHUB_COM).unwrap();
         assert_eq!(access, Access::Account);
+    }
+
+    #[test]
+    fn only_an_installed_app_is_removed() {
+        use std::path::Path;
+        assert!(installed_bundle(Path::new(
+            "/Users/me/Applications/Source Glance.app"
+        )));
+        assert!(installed_bundle(Path::new(
+            "/Applications/Source Glance.app"
+        )));
+        assert!(!installed_bundle(Path::new(
+            "/Users/me/src/desktop/src-tauri/target/debug/bundle/macos/Source Glance.app"
+        )));
+        assert!(!installed_bundle(Path::new("/Applications")));
     }
 
     #[test]

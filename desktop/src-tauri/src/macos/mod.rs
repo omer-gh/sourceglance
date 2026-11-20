@@ -1,5 +1,9 @@
-//! macOS-only code: the Dock icon and the login item.
+//! macOS-only code: the Dock icon, the login item, and moving the app to the Trash when it's
+//! uninstalled.
 
+use std::path::{Path, PathBuf};
+
+use objc2_foundation::{NSFileManager, NSString, NSURL};
 use objc2_service_management::{SMAppService, SMAppServiceStatus};
 use tauri::{ActivationPolicy, AppHandle};
 
@@ -29,4 +33,32 @@ pub fn set_start_at_login(enabled: bool) -> Result<(), String> {
         unsafe { service.unregisterAndReturnError() }
     };
     result.map_err(|e| e.localizedDescription().to_string())
+}
+
+/// The running app bundle, if Source Glance runs from one.
+pub fn app_bundle() -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    // .../Source Glance.app/Contents/MacOS/sourceglance
+    let bundle = exe.parent()?.parent()?.parent()?.to_path_buf();
+    (bundle.extension()? == "app").then_some(bundle)
+}
+
+/// Moves a file or folder to the user's Trash, where it can still be put back.
+pub fn move_to_trash(path: &Path) -> Result<(), String> {
+    let text = path.to_str().ok_or("not a valid path")?;
+    let url = NSURL::fileURLWithPath(&NSString::from_str(text));
+    let manager = NSFileManager::defaultManager();
+    manager
+        .trashItemAtURL_resultingItemURL_error(&url, None)
+        .map_err(|e| e.localizedDescription().to_string())
+}
+
+/// Forgets the installer's receipt for the app (a per-user install keeps it in
+/// ~/Library/Receipts), so macOS doesn't think it's still installed.
+pub fn forget_receipt(home: &Path) {
+    let _ = std::process::Command::new("/usr/sbin/pkgutil")
+        .arg("--volume")
+        .arg(home)
+        .args(["--forget", "io.github.omer-gh.sourceglance.app"])
+        .output();
 }

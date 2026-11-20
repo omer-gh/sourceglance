@@ -141,6 +141,11 @@ export function setStartAtLogin(enabled) {
     return invoke('set_start_at_login', {enabled});
 }
 
+/** Removes the app (and, if asked, the sign-ins and settings), then quits. */
+export function uninstall(removeData) {
+    return invoke('uninstall', {removeData});
+}
+
 export function abortError() {
     return Object.assign(new Error('Operation was cancelled'), {name: 'AbortError'});
 }

@@ -15,8 +15,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   self-hosted instance (browser sign-in or a personal access token); sign-ins are kept in
   the login Keychain. The menu bar shows your Issues, Pull requests and Projects, either as
   one item with tabs (the default) or as separate items, with the same lists, label filter
-  and item actions as the Ubuntu top bar. Optional Dock icon and start at login. Builds are
-  unsigned for now: see [Installing on macOS](docs/installing-macos.md).
+  and item actions as the Ubuntu top bar. Optional Dock icon and start at login.
+- **A Setup wizard for macOS:** `Source-Glance-X.Y.Z.pkg` opens Apple's Installer and installs
+  Source Glance for you only, in `~/Applications`, with no administrator password and no
+  scripts. **Settings → Uninstall Source Glance** removes it again, and can also remove your
+  sign-ins and settings. A `.dmg` is still built for anyone who'd rather drag the app in.
+  Both are unsigned for now: see [Installing on macOS](docs/installing-macos.md).
 
 ### Changed
 

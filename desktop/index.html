@@ -71,6 +71,19 @@
         <label class="inline"><input id="dock-icon" type="checkbox"> Show in the Dock</label>
         <label class="inline"><input id="start-at-login" type="checkbox"> Start automatically at login</label>
         <p id="settings-message" class="hint" role="status"></p>
+        <h3>Uninstall</h3>
+        <p class="hint">Moves Source Glance to the Trash and quits. Your GitHub and GitLab accounts aren't touched.</p>
+        <label class="inline"><input id="remove-data" type="checkbox"> Also remove my sign-ins from the Keychain, and my settings</label>
+        <div class="row-buttons">
+          <button type="button" id="uninstall" class="danger">Uninstall Source Glance…</button>
+        </div>
+        <div id="uninstall-confirm" class="confirm" hidden>
+          <p id="uninstall-question"></p>
+          <div class="row-buttons">
+            <button type="button" id="uninstall-cancel">Cancel</button>
+            <button type="button" id="uninstall-yes" class="danger">Uninstall</button>
+          </div>
+        </div>
       </form>
     </section>
 

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Source Glance installer for macOS (built by desktop/tools/build-pkg.sh). It opens in
+  Apple's Installer with these pages: Introduction, License, Installation Type, Install,
+  Summary. It installs for the current user only, into ~/Applications, so it needs no admin
+  password and changes nothing outside the user's home. It runs no scripts.
+-->
+<installer-gui-script minSpecVersion="2">
+    <title>Source Glance</title>
+    <welcome file="welcome.html" mime-type="text/html"/>
+    <license file="license.txt" mime-type="text/plain"/>
+    <conclusion file="conclusion.html" mime-type="text/html"/>
+
+    <options customize="never" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+    <domains enable_anywhere="false" enable_currentUserHome="true" enable_localSystem="false"/>
+    <volume-check>
+        <allowed-os-versions>
+            <os-version min="13.0"/>
+        </allowed-os-versions>
+    </volume-check>
+
+    <choices-outline>
+        <line choice="app"/>
+    </choices-outline>
+    <choice id="app" title="Source Glance" visible="false">
+        <pkg-ref id="io.github.omer-gh.sourceglance.app"/>
+    </choice>
+    <pkg-ref id="io.github.omer-gh.sourceglance.app" version="@VERSION@" onConclusion="none">app.pkg</pkg-ref>
+</installer-gui-script>

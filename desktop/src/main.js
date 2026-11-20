@@ -25,6 +25,7 @@ import {
     setDockIcon,
     setStartAtLogin,
     startAtLogin,
+    uninstall,
 } from './platform/tauri.js';
 import {Store} from './store.js';
 import {element, timeAgo} from './views.js';
@@ -108,6 +109,32 @@ class App {
                 $('settings-message').textContent = `Couldn’t change the login item: ${e}`;
             }
             $('start-at-login').checked = await startAtLogin();
+        });
+
+        // Uninstall: asks first, in the page, then Rust removes the app and quits.
+        $('uninstall').addEventListener('click', () => {
+            $('uninstall-question').textContent = $('remove-data').checked
+                ? 'Move Source Glance to the Trash and remove your sign-ins and settings? You’ll have to sign in again if you reinstall it.'
+                : 'Move Source Glance to the Trash? Your sign-ins and settings are kept for when you reinstall it.';
+            $('uninstall-confirm').hidden = false;
+            $('uninstall').disabled = true;
+        });
+        $('uninstall-cancel').addEventListener('click', () => {
+            $('uninstall-confirm').hidden = true;
+            $('uninstall').disabled = false;
+        });
+        $('uninstall-yes').addEventListener('click', async () => {
+            $('uninstall-yes').disabled = true;
+            $('settings-message').textContent = 'Uninstalling…';
+            try {
+                await uninstall($('remove-data').checked);
+                $('settings-message').textContent = 'Source Glance is in the Trash. Goodbye!';
+            } catch (e) {
+                $('settings-message').textContent = `Couldn’t uninstall: ${e}`;
+                $('uninstall-confirm').hidden = true;
+                $('uninstall').disabled = false;
+                $('uninstall-yes').disabled = false;
+            }
         });
     }
 
