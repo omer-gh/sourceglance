@@ -21,6 +21,8 @@ The PR template asks authors to confirm these; reviewers check them for any PR t
 auth, networking, storage or rendering:
 
 - [ ] No token or other secret in code, logs, error messages, test fixtures or screenshots
+- [ ] No new GitHub App permission or OAuth scope. In particular, never ask to read repository
+      contents (code): features that would need it degrade gracefully or are done by hand instead
 - [ ] New network calls go only to `api.github.com`, `gitlab.com` or the account's own instance
       (through `lib/transport.js`), and are cancellable
 - [ ] Each request uses the token of the account the data came from

@@ -7,6 +7,63 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Group by.** Group the Issues and Pull requests lists by **Project** (the default), **Platform** or
+  **Organization**, in the window, the top bar menus and the widgets. Choose it in each list's filter bar or
+  under Glance → System Tray; it's remembered.
+- **Friendly names.** Organizations and accounts read "Name (@login)" with the name the platform gives them;
+  with no name, just "@login". Each item also has a small GitHub or GitLab icon, and a row shows its repository
+  under the title when the heading isn't the repository.
+- **Organizations** (Settings → Preferences): every organization or group found for your accounts, each with an
+  editable dropdown to type or pick the name your lists group it by. Organizations with the same name share a
+  group, even across platforms. Names stay in Source Glance; nothing changes on GitHub or GitLab.
+- **Projects** (Settings → Preferences): your repositories as projects. Press the pencil beside a project's
+  title to rename it (Enter or leaving the box saves), drag repository chips between projects, and disband a
+  group with its trash button (it asks first). Reset (in a ⋯ menu, it asks first) goes back to the defaults.
+  A repository you watch shows up too, and so does its organization. A repository that is a git submodule of
+  another joins that one's project on its own (read from its `.gitmodules`, only where your sign-in can
+  already read repository files; the default GitHub sign-in can't, so move those by hand).
+- **Limit repositories & boards.** Each GitHub account has a button that opens a panel over the page: a link
+  to widen or limit what the sign-in can reach on GitHub; **Watch repositories** (a search for public
+  repositories to add, and the repositories the account can see, one accordion per organization with a switch
+  for all of its repositories); and the account's project boards (one accordion per owner, with a switch for
+  all of them).
+- **Accounts card.** The Accounts button opens a small card with each account's avatar, platform badge, name,
+  login and a status dot, plus Add another account, Manage accounts and Sign out of all (which asks first).
+- **Top bar switch** beside Group by in Glance → System Tray. Off takes down the top bar, the desktop widgets
+  and the refreshing without closing the window; on brings them back.
+- Accordions and the task panel slide open and closed, and the chevrons turn with them. Task titles stay between
+  40 and 80 characters wide, and rows stay no wider than they need.
+
+### Changed
+
+- **Settings has a page for each part**: Accounts (and adding one), Preferences (big tabs for Organizations and
+  Projects), Startup and About. The update check now sits right under the version in About.
+- **Lists are flat.** There are no account sections and no collapsing repository headings: one list across all
+  your accounts, grouped by **Group by**, each group a plain heading with its count. The top bar lists are built
+  the same way, from Glance → System Tray.
+- **The Source Glance menu** lists Glance, Tasks, Settings (Sign in… when signed out) and About, each opening its
+  page in the window.
+- **Project Boards.** The Projects list is now called Project Boards, so it can't be mistaken for a repository.
+  Your saved choices (top-bar lists, widgets, collapsed groups) carry over.
+- The task preview panel shrinks the list first and grows the window only if it must; the window keeps its new
+  width. Accordion headers and item rows are one hover area, with a larger arrow.
+
+### Removed
+
+- The label filter and the collapsing account and repository sections in the top bar menus.
+- The Start now button under Startup, the GitHub repositories panel in Settings, the copyright bar at the foot
+  of Settings, and the profile links and Refresh in the Source Glance menu.
+- The About slide-in panel: About is a page of its own.
+
+### Fixed
+
+- The Labels filter dropdown showed only "…" for each name when it had more than eight entries.
+- Clicking a Settings entry in the sidebar could scroll to the wrong section.
+- A desktop widget could keep logging an error after a drag that never released.
+- A watched public repository did not show in your projects until an item of it had loaded.
+
 ## [0.12.1] - 2026-11-19
 
 ### Fixed

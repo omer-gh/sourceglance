@@ -53,10 +53,13 @@ It runs in two processes that share code under `src/lib/`:
 | `lib/accounts.js` | Pure: instance URLs, LAN addresses, account records and ids, section titles, one account's part of the state (`sourceFrom`) | `model` |
 | `lib/tokenStore.js` | Read/write/clear an account's sign-in in the keyring via libsecret | — |
 | `lib/model.js` | Pure functions: build search query, parse and group issues, classify errors, format times. **No `gi://` imports**, so it's unit-tested with Node. See [ADR 0004](adr/0004-pure-core-for-testing.md). | — |
+| `lib/projects.js`, `lib/names.js`, `lib/repoAccess.js` | Pure rules for projects (names, grouping, submodules, disband), friendly names and organization discovery, and the repository watch list. Tested with Node. See [Behavior](design/behavior.md). | `model` |
+| `lib/projectStore.js`, `lib/displayNames.js`, `lib/migrations.js` | The parts that touch GSettings and the clients: the project store, the name cache and one-time rewrites of saved values. | the pure modules above, `accountStore` |
 
 ## State
 
-The extension keeps one state object and re-renders the indicator whenever it changes:
+The extension keeps one state object and re-renders the indicator whenever it changes. How the lists
+are grouped, named and limited is described in [Behavior](design/behavior.md).
 
 ```js
 {

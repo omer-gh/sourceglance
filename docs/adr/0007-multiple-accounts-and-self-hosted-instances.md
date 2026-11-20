@@ -32,7 +32,9 @@ token. Some of those hosts sit on a home or office network without HTTPS.
 
 **How the lists show several accounts.** The user chose between these:
 
-1. **One collapsible section per account (chosen).** For example "GitHub · @alice",
+1. **One collapsible section per account (chosen; superseded in part by
+   [ADR 0008](0008-flat-lists-and-settings-structure.md): lists no longer have account
+   sections).** For example "GitHub · @alice",
    "GitLab · git.example.com · @bob".
 2. One section per platform, with the accounts merged and the account shown on each row.
 

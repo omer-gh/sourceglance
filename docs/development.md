@@ -93,6 +93,21 @@ no-warranty terms, and asks you to type **I agree**. It installs missing package
 (`mutter-dev-bin` on GNOME 49+) with `sudo apt install` only after asking. Run
 `./tools/preview.sh --help` for all options.
 
+## Screenshots
+
+The images in `docs/images/` (used by the README and the home page) are made from invented data, never from
+a real account:
+
+```bash
+tools/screenshots/run.sh
+```
+
+It generates the made-up lists and settings (`tests/fixtures/screenshots/`), then draws the window's pages to
+PNG files. It runs the window with an isolated settings file, no session bus (so no keyring) and in its own
+network namespace, so nothing real can be read or sent. Look at every image before you commit it, keep each
+under 300 KB, and add alt text where you use it ([writing docs](writing-docs.md)). To change what appears,
+edit `tools/screenshots/make-fixture.js`.
+
 ## Setup wizard (installer)
 
 The MSI-style installer lives in `tools/installer/` (design:
