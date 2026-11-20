@@ -375,9 +375,10 @@ export function parseGitLabDiscovery(json, base) {
 /**
  * One account's part of the state: the account, its section key and title, and its lists
  * grouped by repository. `result` is what the loaders return plus status, updatedAt and
- * error; `hidden(item)` leaves out items closed from the menu.
+ * error; `hidden(item)` leaves out items closed from the menu and `hiddenBoard(board)` project
+ * boards you chose to hide (the unfiltered ones stay in `allBoards`, for the picker).
  */
-export function sourceFrom(account, result = {}, hidden = () => false) {
+export function sourceFrom(account, result = {}, hidden = () => false, hiddenBoard = () => false) {
     const issues = result.issues ?? [];
     const prs = result.prs ?? [];
     const shownIssues = issues.filter(item => !hidden(item));
@@ -403,7 +404,8 @@ export function sourceFrom(account, result = {}, hidden = () => false) {
         prTotal: Math.max(0, (result.prTotal ?? 0) - (mine(prs).length - mine(shownPrs).length)),
         prShown: mine(shownPrs).length,
         closedCounts: result.closedCounts ?? {issues: null, prs: null},
-        boards: account.platform === 'github' ? result.boards ?? null : null,
+        boards: account.platform === 'github' ? (result.boards ?? null)?.filter(board => !hiddenBoard(board)) ?? null : null,
+        allBoards: account.platform === 'github' ? result.boards ?? null : null,
         boardsError: result.boardsError ?? null,
     };
 }

@@ -67,13 +67,25 @@ export function searchPageUrl(search, repos = [], base = 'https://github.com') {
     return `${base}/${page}?q=${encodeURIComponent(buildSearchQuery(repos, search))}`;
 }
 
+/**
+ * A saved id from before Projects became Project Boards: 'projects' or 'projects:…' become
+ * 'boards' or 'boards:…'; anything else comes back as it was.
+ */
+export function renameLegacyBoards(id) {
+    if (typeof id !== 'string')
+        return id;
+    if (id === 'projects')
+        return 'boards';
+    return id.startsWith('projects:') ? `boards:${id.slice('projects:'.length)}` : id;
+}
+
 // The lists that can have a top-bar button, in their fixed order. The sourceglance button
 // (status and settings) is always shown and isn't part of this setting.
-export const TOOLBAR_LISTS = ['issues', 'prs', 'projects'];
+export const TOOLBAR_LISTS = ['issues', 'prs', 'boards'];
 
 /** Known list ids from the `toolbar-buttons` setting, in toolbar order, without duplicates. */
 export function normalizeButtons(ids) {
-    const wanted = new Set(Array.isArray(ids) ? ids : []);
+    const wanted = new Set(Array.isArray(ids) ? ids.map(renameLegacyBoards) : []);
     return TOOLBAR_LISTS.filter(id => wanted.has(id));
 }
 
@@ -176,7 +188,7 @@ export function menuWidth(monitorWidth, scale = 1) {
 
 // Widgets (lib/widgets.js on the desktop, pages/widgetCanvas.js in the window): which cards,
 // and where they go.
-export const WIDGET_IDS = ['summary', 'issues', 'prs', 'projects'];
+export const WIDGET_IDS = ['summary', 'issues', 'prs', 'boards'];
 // Around the cards at the screen's edges, and between them.
 export const WIDGET_MARGIN = 24;
 export const WIDGET_GAP = 16;
@@ -236,7 +248,7 @@ export function largestCardSize(sizes, fallback) {
  * built-in cards first, then the custom ones (`custom`, from parseCustomWidgets()) in their order.
  */
 export function normalizeWidgets(ids, custom = []) {
-    const wanted = new Set(Array.isArray(ids) ? ids : []);
+    const wanted = new Set(Array.isArray(ids) ? ids.map(renameLegacyBoards) : []);
     return [...WIDGET_IDS, ...custom.map(def => def.id)].filter(id => wanted.has(id));
 }
 
@@ -247,11 +259,11 @@ export const WIDGET_ICONS = {
     pr: 'git-pull-request',
     merge: 'git-merge',
     closed: 'issue-closed',
-    projects: 'checklist',
+    boards: 'checklist',
     label: 'label',
     code: 'code',
 };
-export const CUSTOM_WIDGET_KINDS = ['issues', 'prs', 'projects'];
+export const CUSTOM_WIDGET_KINDS = ['issues', 'prs', 'boards'];
 export const CUSTOM_WIDGET_RELATIONS = ['any', 'assigned', 'review'];
 const MAX_WIDGET_NAME = 40;
 const MAX_WIDGET_FILTERS = 20;
@@ -273,8 +285,8 @@ export function cleanCustomWidget(def) {
     return {
         id: def.id,
         name,
-        icon: Object.hasOwn(WIDGET_ICONS, def.icon) ? def.icon : 'app',
-        kind: CUSTOM_WIDGET_KINDS.includes(def.kind) ? def.kind : 'issues',
+        icon: Object.hasOwn(WIDGET_ICONS, renameLegacyBoards(def.icon)) ? renameLegacyBoards(def.icon) : 'app',
+        kind: CUSTOM_WIDGET_KINDS.includes(renameLegacyBoards(def.kind)) ? renameLegacyBoards(def.kind) : 'issues',
         account: typeof def.account === 'string' ? def.account : '',
         relation: CUSTOM_WIDGET_RELATIONS.includes(def.relation) ? def.relation : 'any',
         repos: cleanList(def.repos),
@@ -323,7 +335,7 @@ export function customWidgetItems(def, state) {
     const repos = lower(def.repos);
     const labels = lower(def.labels);
     const terms = searchTerms(def.words);
-    if (def.kind === 'projects') {
+    if (def.kind === 'boards') {
         return sources.flatMap(src => (src.boards ?? []).flatMap(board => board.drafts
             .filter(draft => matchesAll([draft.title ?? '', draft.status ?? '', board.title ?? ''].join('\n'), terms))
             .map(draft => ({board, draft}))));
@@ -512,7 +524,7 @@ export function repoFromApiUrl(url) {
     return match ? match[1] : 'unknown';
 }
 
-function cappedString(value, max) {
+export function cappedString(value, max) {
     return typeof value === 'string' ? [...value].slice(0, max).join('') : '';
 }
 
@@ -832,7 +844,7 @@ export function parseProjectItems(json) {
     return boards;
 }
 
-// The Projects list: your boards (personal and from your organizations) and their draft
+// The Project Boards list: your boards (personal and from your organizations) and their draft
 // items, i.e. cards that are neither issues nor PRs (those have their own lists).
 
 export const MAX_BOARD_ITEMS = 50;
@@ -1242,7 +1254,7 @@ export function listBadge(id, state) {
         return sum('prTotal', 'prShown');
     case 'tasks':
         return String(allTasks(loaded).filter(task => !task.item || isMine(task.item)).length);
-    case 'projects': {
+    case 'boards': {
         // Project boards are GitHub's; accounts that can't read them don't count.
         const boards = loaded.filter(source => source.platform === 'github' && !source.boardsError);
         if (boards.length === 0)
@@ -1268,7 +1280,7 @@ export function countLabel(total, shown) {
     return total > shown ? `${shown}+` : String(total);
 }
 
-// Search in the window: one query filters Issues, Pull requests and Projects.
+// Search in the window: one query filters Issues, Pull requests and Project Boards.
 
 /** Search box text → lowercase words; every word has to match. */
 export function searchTerms(query) {
@@ -1312,7 +1324,7 @@ export function searchBoards(boards, terms) {
     }));
 }
 
-/** How many loaded items in list `id` ('issues', 'prs', 'projects') match, across all accounts. */
+/** How many loaded items in list `id` ('issues', 'prs', 'boards') match, across all accounts. */
 export function searchCount(id, state, terms) {
     // Like the badges, only what's yours: the team's items are there for the Assignee filter.
     const count = groups => searchGroups(groups ?? [], terms)
@@ -1325,7 +1337,7 @@ export function searchCount(id, state, terms) {
         return sources.reduce((sum, source) => sum + count(source.prGroups), 0);
     case 'tasks':
         return filterTasks(allTasks(sources), [], terms).filter(task => !task.item || isMine(task.item)).length;
-    case 'projects':
+    case 'boards':
         return sources.reduce((sum, source) =>
             sum + searchBoards(source.boards ?? [], terms).reduce((n, board) => n + board.drafts.length, 0), 0);
     default:
@@ -1335,12 +1347,69 @@ export function searchCount(id, state, terms) {
 
 /**
  * The id a repository group (or project board, by its node id) is remembered by in the
- * `collapsed-groups` setting, e.g. issues:github:owner/repo or projects:github:PVT_….
+ * `collapsed-groups` setting, e.g. issues:github:owner/repo or boards:github:PVT_….
  * `section` is the account's sectionKey() (accounts.js): "github" or "gitlab" for the
  * first sign-ins, the account id for accounts added later.
  */
 export function groupCollapseId(list, section, name) {
     return `${list}:${section}:${name}`;
+}
+
+// How the window's Issues and Pull requests lists are grouped (docs/naming.md): by project (a
+// repository on GitHub, a project on GitLab), by platform, or by organization (the user,
+// organization or group a project belongs to, merged across accounts by name).
+export const GROUP_BY = ['project', 'platform', 'organization'];
+
+/** A known group-by from the `group-by` setting; anything else is the default, project. */
+export function normalizeGroupBy(value) {
+    if (value === 'owner')
+        return 'organization';
+    return GROUP_BY.includes(value) ? value : 'project';
+}
+
+/** The organization of `repo` ("owner/name", or "group/subgroup/name" on GitLab): its top-level namespace. */
+export function organizationOf(repo) {
+    const slash = String(repo).indexOf('/');
+    return slash > 0 ? repo.slice(0, slash) : String(repo);
+}
+
+const PLATFORM_TITLES = {github: 'GitHub', gitlab: 'GitLab'};
+
+function sourcePlatform(source) {
+    return source.platform ?? source.account?.platform ?? 'github';
+}
+
+/**
+ * The lists of all `sources` regrouped by platform: [{id, title, issues}], platforms in the
+ * order their accounts are listed. `groupsOf(source)` gives a source's project groups.
+ */
+export function groupByPlatform(sources, groupsOf) {
+    const platforms = new Map();
+    for (const source of sources) {
+        const id = sourcePlatform(source);
+        if (!platforms.has(id))
+            platforms.set(id, {id, title: PLATFORM_TITLES[id] ?? id, issues: []});
+        platforms.get(id).issues.push(...(groupsOf(source) ?? []).flatMap(group => group.issues));
+    }
+    return [...platforms.values()];
+}
+
+/**
+ * The lists of all `sources` regrouped by organization, merging accounts whose organization has
+ * the same key: [{id, title, issues}] in the order they first appear. `labelOf(account, organization)`
+ * gives {key, title}, e.g. the same friendly name on GitHub and GitLab is one group.
+ */
+export function groupByOrganization(sources, groupsOf, labelOf) {
+    const organizations = new Map();
+    for (const source of sources) {
+        for (const group of groupsOf(source) ?? []) {
+            const {key, title} = labelOf(source.account, organizationOf(group.repo));
+            if (!organizations.has(key))
+                organizations.set(key, {id: key, title, issues: []});
+            organizations.get(key).issues.push(...group.issues);
+        }
+    }
+    return [...organizations.values()];
 }
 
 /** `ids` with `id` added, or without it if it was there (collapsed ↔ expanded). */

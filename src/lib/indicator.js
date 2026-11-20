@@ -17,7 +17,7 @@ import {VIEWS, addAppFooter, badgeText} from './views.js';
 
 const NAMES = {
     issues: () => _('Issues'),
-    projects: () => _('Projects'),
+    boards: () => _('Project Boards'),
     prs: () => _('Pull requests'),
     app: () => 'Source Glance',
 };
@@ -26,23 +26,21 @@ export const ToolbarButton = GObject.registerClass({GTypeName: gtypeName('Toolba
 class ToolbarButton extends PanelMenu.Button {
     /**
      * @param {object} params
-     * @param {string} params.id 'issues', 'prs', 'projects' or 'app'
+     * @param {string} params.id 'issues', 'prs', 'boards' or 'app'
      * @param {object} params.icons Gio.Icon per id
      * @param {string[]|null} params.tabs for the app button in the tabs layout: the lists to show as tabs
      */
-    _init({id, icons, tabs = null, onRefresh, onOpenTasks, onSettings, onAbout, onAction, getRepos, getAutostart, setAutostart, onQuit,
+    _init({id, icons, tabs = null, onRefresh, onOpenTasks, onOpenPage, onSettings, onAbout, onAction, getRepos, getListSettings, getAutostart, setAutostart, onQuit,
         getCollapsed, setCollapsed}) {
         super._init(0.0, `Source Glance ${id}`);
         this._id = id;
         this._icons = icons;
         this._tabs = tabs;
         this._tab = tabs?.[0] ?? 'app';
-        this._callbacks = {onRefresh, onOpenTasks, onSettings, onAbout, onAction, getRepos, getAutostart, setAutostart, onQuit};
+        this._callbacks = {onRefresh, onOpenTasks, onOpenPage, onSettings, onAbout, onAction, getRepos, getListSettings, getAutostart, setAutostart, onQuit};
         this._getCollapsed = getCollapsed;
         this._setCollapsed = setCollapsed;
         this._state = null;
-        // Label chosen in each list's dropdown; null shows everything. Kept across refreshes.
-        this._filters = {issues: null, prs: null};
         this._rebuildId = 0;
         this.connect('destroy', () => {
             if (this._rebuildId)
@@ -110,7 +108,7 @@ class ToolbarButton extends PanelMenu.Button {
         if (!this._tabs)
             return '';
         // Tabs layout: the one button counts every list.
-        // Only numbers ('7', '25+'); skips '' and the '…' shown while projects load.
+        // Only numbers ('7', '25+'); skips '' and the '…' shown while boards load.
         const counts = this._tabs.map(id => badgeText(id, this._state)).filter(text => /^\d+\+?$/.test(text));
         if (counts.length === 0)
             return '';
@@ -175,12 +173,11 @@ class ToolbarButton extends PanelMenu.Button {
         const ui = {
             menu: null,
             state: this._state,
-            filters: this._filters,
             icons: this._icons,
             scheduleRebuild: () => this._scheduleRebuild(),
             repos: this._callbacks.getRepos(),
-            collapsed: this._getCollapsed('collapsed-sections'),
-            collapsedGroups: this._getCollapsed('collapsed-groups'),
+            // How Glance → System Tray says the lists are built: group by, your projects and organization names.
+            ...this._callbacks.getListSettings(),
             toggleCollapsed: (id, key = 'collapsed-sections') => {
                 this._setCollapsed(key, toggleId(this._getCollapsed(key), id));
                 this._scheduleRebuild();

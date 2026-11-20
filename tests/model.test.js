@@ -28,6 +28,11 @@ import {
     gtypeName,
     itemKey,
     normalizeButtons,
+    groupByOrganization,
+    groupByPlatform,
+    normalizeGroupBy,
+    organizationOf,
+    renameLegacyBoards,
     labelTextColor,
     parseViewerBoards,
     searchPageUrl,
@@ -289,7 +294,7 @@ test('normalizeButtons keeps known lists in toolbar order', () => {
     assert.deepEqual(normalizeButtons(['prs', 'issues', 'prs', 'evil', 'app']), ['issues', 'prs']);
     assert.deepEqual(normalizeButtons([]), []);
     assert.deepEqual(normalizeButtons(null), []);
-    assert.deepEqual(normalizeButtons(TOOLBAR_LISTS), ['issues', 'prs', 'projects']);
+    assert.deepEqual(normalizeButtons(TOOLBAR_LISTS), ['issues', 'prs', 'boards']);
 });
 
 test('closed searches count closed items still assigned to you', () => {
@@ -560,9 +565,9 @@ test('listBadge shows counts once loaded, 0 included', () => {
     const one = source => ({sources: [source]});
     assert.equal(listBadge('issues', one(base)), '0');
     assert.equal(listBadge('prs', one(base)), '25+');
-    assert.equal(listBadge('projects', one(base)), '2');
-    assert.equal(listBadge('projects', one({...base, boards: null})), '…');
-    assert.equal(listBadge('projects', one({...base, boards: null, boardsError: 'forbidden'})), '');
+    assert.equal(listBadge('boards', one(base)), '2');
+    assert.equal(listBadge('boards', one({...base, boards: null})), '…');
+    assert.equal(listBadge('boards', one({...base, boards: null, boardsError: 'forbidden'})), '');
     assert.equal(listBadge('issues', one({...base, status: 'signed-out'})), '');
     assert.equal(listBadge('issues', one({...base, updatedAt: null})), '');
     assert.equal(listBadge('issues', {sources: []}), '');
@@ -601,7 +606,7 @@ test('widget sizes', () => {
 });
 
 test('desktop widget ids, default spots and clamping', () => {
-    assert.deepEqual(normalizeWidgets(['projects', 'summary', 'x', 'summary']), ['summary', 'projects']);
+    assert.deepEqual(normalizeWidgets(['boards', 'summary', 'x', 'summary']), ['summary', 'boards']);
     assert.deepEqual(normalizeWidgets(null), []);
     const area = {x: 0, y: 32, width: 1280, height: 768};
     const size = {width: 300, height: 200};
@@ -634,8 +639,8 @@ test('desktop widget ids, default spots and clamping', () => {
 test('widget grid layout: packing, moving and order', () => {
     const grid = {columns: 3, rows: 2};
     // Saved spots are kept; missing, off-grid or shared ones take the first free spot.
-    assert.deepEqual(normalizeWidgetLayout({}, ['summary', 'issues', 'prs', 'projects'], grid),
-        {summary: [0, 0], issues: [1, 0], prs: [2, 0], projects: [0, 1]});
+    assert.deepEqual(normalizeWidgetLayout({}, ['summary', 'issues', 'prs', 'boards'], grid),
+        {summary: [0, 0], issues: [1, 0], prs: [2, 0], boards: [0, 1]});
     assert.deepEqual(normalizeWidgetLayout({issues: [2, 1], summary: [9, 0], prs: [2, 1]}, ['summary', 'issues', 'prs'], grid),
         {summary: [0, 0], issues: [2, 1], prs: [1, 0]});
     assert.deepEqual(normalizeWidgetLayout(null, [], grid), {});
@@ -686,7 +691,7 @@ test('custom widgets: settings, filters and ids', () => {
     assert.deepEqual(ids(customWidgetItems(clean({labels: ['UI']}), state)), [3]);
     assert.deepEqual(ids(customWidgetItems(clean({kind: 'issues', repos: ['o/r'], labels: ['ui']}), state)), [1]);
     assert.deepEqual(ids(customWidgetItems(clean({words: 'pr 4'}), state)), [4]);
-    assert.deepEqual(customWidgetItems(clean({kind: 'projects', words: 'todo'}), state).map(({draft}) => draft.title),
+    assert.deepEqual(customWidgetItems(clean({kind: 'boards', words: 'todo'}), state).map(({draft}) => draft.title),
         ['Write docs']);
     assert.deepEqual(customWidgetItems(clean({}), null), []);
 });
@@ -715,4 +720,31 @@ test('parseTeamItems splits the team\'s open items into issues and PRs, skipping
     // The repository filter keeps only its repositories.
     assert.deepEqual(parseTeamItems(json, ['c/d']).issues.map(item => item.number), [13]);
     assert.deepEqual(parseTeamItems(null), {issues: [], prs: []});
+});
+
+test('renameLegacyBoards maps saved Projects ids to Project Boards', () => {
+    assert.equal(renameLegacyBoards('projects'), 'boards');
+    assert.equal(renameLegacyBoards('projects:github:PVT_a'), 'boards:github:PVT_a');
+    assert.equal(renameLegacyBoards('issues:github:o/r'), 'issues:github:o/r');
+    assert.equal(renameLegacyBoards(7), 7);
+    assert.deepEqual(normalizeButtons(['projects', 'issues']), ['issues', 'boards']);
+    assert.equal(cleanCustomWidget({id: 'custom-a', name: 'x', kind: 'projects', icon: 'projects'}).kind, 'boards');
+});
+
+test('group by: organization, platform and the saved value', () => {
+    assert.equal(normalizeGroupBy('organization'), 'organization');
+    assert.equal(normalizeGroupBy('owner'), 'organization');
+    assert.equal(normalizeGroupBy('nope'), 'project');
+    assert.equal(organizationOf('octo/app'), 'octo');
+    assert.equal(organizationOf('g/sub/p'), 'g');
+    const groups = [{repo: 'octo/app', issues: [1, 2]}, {repo: 'acme/site', issues: [3]}, {repo: 'octo/api', issues: [4]}];
+    const sources = [{platform: 'github', account: {id: 'a'}, groups},
+        {platform: 'gitlab', account: {id: 'b'}, groups: [{repo: 'g/p', issues: [5]}]},
+        {platform: 'github', account: {id: 'c'}, groups: [{repo: 'x/y', issues: [6]}]}];
+    assert.deepEqual(groupByPlatform(sources, src => src.groups).map(p => [p.title, p.issues]),
+        [['GitHub', [1, 2, 3, 4, 6]], ['GitLab', [5]]]);
+    // g and x are the same person under one friendly name, so they share a group.
+    const labelOf = (account, org) => ({key: ['g', 'x'].includes(org) ? 'me' : org, title: org});
+    assert.deepEqual(groupByOrganization(sources, src => src.groups, labelOf).map(o => [o.id, o.issues]),
+        [['octo', [1, 2, 4]], ['acme', [3]], ['me', [5, 6]]]);
 });

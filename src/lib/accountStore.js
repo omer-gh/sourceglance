@@ -153,7 +153,7 @@ export class AccountClients {
  * `repos` (the repository filter) applies to github.com accounts only. `team` adds the team's
  * open items (the window's Assignee filter; see loadLists()).
  */
-export async function loadAccount(clients, account, {repos = [], projects = true, team = false} = {}, cancellable = null) {
+export async function loadAccount(clients, account, {repos = [], boards: withBoards = true, team = false} = {}, cancellable = null) {
     let result;
     if (account.platform === 'gitlab') {
         result = await loadGitLab(clients.clientFor(account), {team}, cancellable);
@@ -166,7 +166,7 @@ export async function loadAccount(clients, account, {repos = [], projects = true
             return {status: 'signed-out'};
         const lists = await loadLists(clients.clientFor(account), token, {
             repos: account.base === GITHUB_COM ? repos : [],
-            projects,
+            boards: withBoards,
             team,
         }, cancellable);
         result = {...lists, status: 'ready'};

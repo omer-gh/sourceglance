@@ -105,9 +105,13 @@ class Card {
     _startDrag(event) {
         if (event.get_button() !== Clutter.BUTTON_PRIMARY)
             return Clutter.EVENT_PROPAGATE;
+        // A press while one is still tracked (its release was missed) must not leave a handler behind.
+        this._endDrag(false);
         const [x, y] = event.get_coords();
         this._drag = {dx: x - this.actor.x, dy: y - this.actor.y};
         this._dragId = global.stage.connect('captured-event', (_stage, e) => {
+            if (!this._drag)
+                return Clutter.EVENT_PROPAGATE;
             const type = e.type();
             if (type === Clutter.EventType.MOTION) {
                 const [mx, my] = e.get_coords();
@@ -177,8 +181,8 @@ class Card {
         case 'prs':
             this._renderItems(state, icons);
             break;
-        case 'projects':
-            this._renderProjects(state, icons);
+        case 'boards':
+            this._renderBoards(state, icons);
             break;
         }
     }
@@ -191,7 +195,7 @@ class Card {
             onClick: github(searchPageUrl('issue', repos))});
         this._row({gicon: icons.prs, text: _('Pull requests'), detail: listBadge('prs', state),
             onClick: github('https://github.com/pulls')});
-        this._row({gicon: icons.projects, text: _('Project drafts'), detail: listBadge('projects', state) || '–'});
+        this._row({gicon: icons.boards, text: _('Project drafts'), detail: listBadge('boards', state) || '–'});
         // Every account's closed counts, added up.
         const sum = key => {
             const known = state.sources.map(src => src.closedCounts?.[key]).filter(n => Number.isInteger(n));
@@ -234,9 +238,9 @@ class Card {
             return;
         }
         for (const entry of found.slice(0, this._maxRows)) {
-            if (this.def.kind === 'projects') {
+            if (this.def.kind === 'boards') {
                 const {board, draft} = entry;
-                this._row({iconName: 'document-edit-symbolic', text: truncate(draft.title || _('Untitled draft'), 80),
+                this._row({iconName: 'edit-symbolic', text: truncate(draft.title || _('Untitled draft'), 80),
                     detail: draft.status ?? _('No status'), onClick: board.url ? () => openUri(board.url) : null});
             } else {
                 const pr = this.def.kind === 'prs';
@@ -252,7 +256,7 @@ class Card {
         }
     }
 
-    _renderProjects(state, icons) {
+    _renderBoards(state, icons) {
         const sources = state.sources.filter(src => src.platform === 'github' && src.updatedAt);
         if (sources.length === 0 || sources.every(src => src.boardsError)) {
             this._message(_('Can’t read your project boards.'));
@@ -270,7 +274,7 @@ class Card {
         for (const {board, draft} of drafts.slice(0, this._maxRows)) {
             this._row({
                 gicon: isDoneStatus(draft.status) ? icons.issueClosed : null,
-                iconName: isDoneStatus(draft.status) ? null : 'document-edit-symbolic',
+                iconName: isDoneStatus(draft.status) ? null : 'edit-symbolic',
                 text: truncate(draft.title || _('Untitled draft'), 80),
                 detail: draft.status ?? _('No status'),
                 onClick: board.url ? () => openUri(board.url) : null,
@@ -342,8 +346,8 @@ export class DesktopWidgets {
                 this._cards.delete(id);
             }
         }
-        const titles = {summary: _('Source Glance'), issues: _('Issues'), prs: _('Pull requests'), projects: _('Projects')};
-        const icons = {summary: this._icons.app, issues: this._icons.issues, prs: this._icons.prs, projects: this._icons.projects};
+        const titles = {summary: _('Source Glance'), issues: _('Issues'), prs: _('Pull requests'), boards: _('Project Boards')};
+        const icons = {summary: this._icons.app, issues: this._icons.issues, prs: this._icons.prs, boards: this._icons.boards};
         for (const id of wanted) {
             if (this._cards.has(id))
                 continue;

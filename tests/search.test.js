@@ -53,8 +53,8 @@ test('searchBoards and searchCount count matches across lists and platforms', ()
     const terms = searchTerms('login');
     assert.equal(searchCount('issues', state, terms), 2);
     assert.equal(searchCount('prs', state, terms), 1);
-    assert.equal(searchCount('projects', state, terms), 0);
+    assert.equal(searchCount('boards', state, terms), 0);
     assert.equal(searchCount('issues', {sources: [github, {...gitlab, status: 'signed-out'}]}, terms), 1);
-    assert.equal(searchCount('projects', {sources: [{...github, boards: null}]}, terms), 0);
-    assert.equal(searchCount('projects', {sources: [github, {...github, boards}]}, searchTerms('beta')), 2);
+    assert.equal(searchCount('boards', {sources: [{...github, boards: null}]}, terms), 0);
+    assert.equal(searchCount('boards', {sources: [github, {...github, boards}]}, searchTerms('beta')), 2);
 });

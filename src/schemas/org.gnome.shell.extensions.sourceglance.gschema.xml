@@ -18,6 +18,36 @@
       <summary>Refresh interval</summary>
       <description>Minutes between GitHub checks.</description>
     </key>
+    <key name="group-by" type="s">
+      <choices>
+        <choice value="project"/>
+        <choice value="platform"/>
+        <choice value="organization"/>
+      </choices>
+      <default>'project'</default>
+      <summary>Group lists by</summary>
+      <description>How the window's Issues and Pull requests lists are grouped: "project" (the repository or project), "platform" (GitHub or GitLab) or "organization" (the user, organization or group, merged across accounts by name).</description>
+    </key>
+    <key name="organization-names" type="a{ss}">
+      <default>{}</default>
+      <summary>Organization names you set</summary>
+      <description>The friendly name you gave an organization, as plain text: the organization's login (lower case) to its name, the same on every account and platform. Organizations with the same name share a group when the lists are grouped by organization.</description>
+    </key>
+    <key name="project-repos" type="a{ss}">
+      <default>{}</default>
+      <summary>Projects you made</summary>
+      <description>The project each repository belongs to, as plain text: the repository (lower case, owner/name) to the project's name. A repository with no entry is a project named after itself. Kept only in Source Glance.</description>
+    </key>
+    <key name="project-boards" type="as">
+      <default>[]</default>
+      <summary>Projects from the platforms</summary>
+      <description>Names of projects that came from a platform (a GitHub Project board), kept even when no repository is in them.</description>
+    </key>
+    <key name="hidden-boards" type="as">
+      <default>[]</default>
+      <summary>Hidden project boards</summary>
+      <description>Project boards you chose to hide, each by its address (plain text). Kept only in Source Glance.</description>
+    </key>
     <key name="layout" type="s">
       <choices>
         <choice value="separate"/>
@@ -28,7 +58,7 @@
       <description>"separate": one top-bar icon per list. "tabs": one icon whose menu has a tab per list.</description>
     </key>
     <key name="toolbar-buttons" type="as">
-      <default>['issues', 'prs', 'projects']</default>
+      <default>['issues', 'prs', 'boards']</default>
       <summary>Lists in the top bar</summary>
       <description>Which lists to show: issues, prs, projects. The sourceglance button is always shown.</description>
     </key>
@@ -120,10 +150,15 @@
       <summary>Show in app grid</summary>
       <description>Add a sourceglance icon to the app grid and dock that starts sourceglance and opens its Settings.</description>
     </key>
+    <key name="bar-enabled" type="b">
+      <default>true</default>
+      <summary>Top bar on</summary>
+      <description>Whether sourceglance shows its top bar and desktop widgets and refreshes. The Top bar switch in Glance → System Tray sets it; Quit turns it off.</description>
+    </key>
     <key name="start-request" type="i">
       <default>0</default>
       <summary>Start request counter</summary>
-      <description>Internal. Bumped by Settings' "Start now" to show sourceglance again after Quit.</description>
+      <description>Internal. Bumped by the app icon (launcher) to show sourceglance again after Quit.</description>
     </key>
     <key name="quit-request" type="i">
       <default>0</default>
@@ -143,7 +178,7 @@
     <key name="tasks-expanded" type="b">
       <default>false</default>
       <summary>Show the lists under Tasks</summary>
-      <description>Whether the window's sidebar shows Issues, Pull requests and Projects under Tasks.</description>
+      <description>Whether the window's sidebar shows Issues, Pull requests and Project Boards under Tasks.</description>
     </key>
     <key name="saved-wallpaper" type="a{ss}">
       <default>{}</default>

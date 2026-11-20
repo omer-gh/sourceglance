@@ -19,7 +19,7 @@ async function optional(promise, fallback) {
  *   boards, boardsError}; items carry `boards` (their project boards). With `team`, the lists
  *   also hold the team's open items (reason 'team'); the totals stay yours.
  */
-export async function loadLists(client, token, {repos = [], projects = true, team = false} = {}, cancellable = null) {
+export async function loadLists(client, token, {repos = [], boards: withBoards = true, team = false} = {}, cancellable = null) {
     const login = await client.getViewer(token, cancellable);
     const [issues, assigned, review, closedIssues, closedPrs, teamItems] = await Promise.all([
         client.search(token, repos, 'issue', cancellable),
@@ -46,7 +46,7 @@ export async function loadLists(client, token, {repos = [], projects = true, tea
 
     let boards = null;
     let boardsError = null;
-    if (projects) {
+    if (withBoards) {
         boards = await optional(client.getViewerBoards(token, cancellable), e => {
             boardsError = e.kind ?? 'unknown';
             return null;

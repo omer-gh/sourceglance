@@ -139,9 +139,9 @@ test('listBadge adds up every account', async () => {
     assert.equal(listBadge('issues', {sources: [github, gitlab]}), '5');
     assert.equal(listBadge('prs', {sources: [github, {platform: 'gitlab', status: 'signed-out'}]}), '0');
     assert.equal(listBadge('issues', {sources: [{...github, status: 'signed-out'}, gitlab]}), '3');
-    assert.equal(listBadge('projects', {sources: [{...github, status: 'signed-out'}, gitlab]}), '');
+    assert.equal(listBadge('boards', {sources: [{...github, status: 'signed-out'}, gitlab]}), '');
     // A second GitHub account still loading its boards.
-    assert.equal(listBadge('projects', {sources: [github, {...github, boards: null}]}), '…');
+    assert.equal(listBadge('boards', {sources: [github, {...github, boards: null}]}), '…');
 });
 
 test('team lists: your most active projects, then each one\'s open issues and merge requests', () => {

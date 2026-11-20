@@ -1,5 +1,5 @@
 // What each top-bar list shows. Each view fills a PopupMenu from the state (see indicator.js).
-// `ui` is {menu, state, filters, icons, scheduleRebuild, onAction, onRefresh, onOpenTasks, onSettings, onAbout, repos}.
+// `ui` is {menu, state, icons, scheduleRebuild, onAction, onOpenTasks, onOpenPage, onSettings, onAbout, repos, groupBy, projectRepos, organizationNames}.
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
@@ -13,21 +13,19 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {
     draftTarget,
-    filterByLabel,
-    groupCollapseId,
+    groupByOrganization,
+    groupByPlatform,
     groupDraftsByStatus,
     gtypeName,
     isDoneStatus,
-    isGroupCollapsed,
     itemKey,
     itemRef,
-    labelOptions,
     relativeTime,
-    sourceBadge,
     truncate,
 } from './model.js';
+import {groupByProject} from './projects.js';
 import {hostLabel, isDefaultBase} from './accounts.js';
-import {closedPageUrl, isSafeLink, profileUrl} from './requests.js';
+import {closedPageUrl, isSafeLink} from './requests.js';
 
 function formatRelative(date) {
     const {unit, value} = relativeTime(date);
@@ -67,20 +65,6 @@ function errorText(error, intervalMinutes) {
     }
 }
 
-// A choice in a label dropdown. It doesn't emit 'activate', so picking a label filters the
-// list without closing the menu.
-const FilterItem = GObject.registerClass({GTypeName: gtypeName('FilterItem', import.meta.url)},
-class FilterItem extends PopupMenu.PopupMenuItem {
-    _init(text, onPick) {
-        super._init(text);
-        this._onPick = onPick;
-    }
-
-    activate(_event) {
-        this._onPick();
-    }
-});
-
 export function openUri(uri) {
     if (!isSafeLink(uri)) {
         console.warn('sourceglance: refusing to open a link that isn\u2019t on a signed-in account\u2019s instance');
@@ -109,8 +93,9 @@ const THEMED = {
     comment: 'chat-message-new-symbolic',
     reopen: 'edit-undo-symbolic',
     assignees: 'system-users-symbolic',
-    draft: 'document-edit-symbolic',
+    draft: 'edit-symbolic',
     refresh: 'view-refresh-symbolic',
+    glance: 'view-grid-symbolic',
     tasks: 'view-list-bullet-symbolic',
     settings: 'emblem-system-symbolic',
     profile: 'avatar-default-symbolic',
@@ -199,20 +184,21 @@ function openText(item, ui) {
     return item.platform === 'gitlab' ? _('Open on GitLab') : _('Open on GitHub');
 }
 
-function itemLabel(item) {
-    const label = `${itemRef(item)}  ${truncate(item.title)}`;
+function itemLabel(item, context = '') {
+    // `context` is the repository, where the heading above isn't the repository.
+    const label = `${context}${itemRef(item)}  ${truncate(item.title)}`;
     return item.kind === 'pr' && item.reason === 'review'
         ? _('%s · review requested').format(label)
         : label;
 }
 
 /** An issue or PR row with its actions in a submenu. */
-function addItem(ui, item) {
+function addItem(ui, item, context = '') {
     const busy = ui.state.busy.includes(itemKey(item));
     let kindIcon = item.kind === 'pr' ? ui.icons.prs : ui.icons.issue;
     if (item.state === 'closed')
         kindIcon = item.kind === 'pr' ? ui.icons.prClosed : ui.icons.issueClosed;
-    const row = addItemRow(ui, busy ? _('%s · working…').format(itemLabel(item)) : itemLabel(item), kindIcon);
+    const row = addItemRow(ui, busy ? _('%s · working…').format(itemLabel(item, context)) : itemLabel(item, context), kindIcon);
 
     const add = (text, gicon, callback) => {
         const entry = row.addAction(text, callback, gicon);
@@ -234,65 +220,17 @@ function addItem(ui, item) {
     add(_('Labels…'), ui.icons.label, () => ui.onAction(item, 'labels'));
     for (const board of item.boards ?? []) {
         add(_('%s: %s…').format(truncate(board.title, 30), board.status ?? _('No status')),
-            ui.icons.projects, () => ui.onAction(item, 'status', board));
+            ui.icons.boards, () => ui.onAction(item, 'status', board));
     }
 }
 
-/**
- * A section heading with a label filter dropdown, then its items grouped by repository. Each
- * repository heading collapses its items; `list` and `section` (the account's section key)
- * make its id in collapsed-groups.
- */
-function addSection(ui, title, groups, key, list, section) {
-    const options = labelOptions(groups);
-    let filter = ui.filters[key] ?? null;
-    // The label disappeared after a refresh: show everything again.
-    if (filter !== null && !options.some(option => option.name === filter))
-        filter = ui.filters[key] = null;
-
-    // Always shown, so the filter is easy to find even before any item has a label.
-    const header = new PopupMenu.PopupSubMenuMenuItem(title);
-    header.add_style_class_name('sourceglance-section');
-    const current = new St.Label({
-        text: filter === null ? _('All labels') : truncate(filter, 24),
-        style_class: 'sourceglance-filter',
-        y_align: Clutter.ActorAlign.CENTER,
-    });
-    if (header._triangleBin)
-        header.insert_child_below(current, header._triangleBin);
-    else
-        header.add_child(current);
-    ui.menu.addMenuItem(header);
-
-    const pick = name => {
-        ui.filters[key] = name;
-        ui.scheduleRebuild();
-    };
-    const all = new FilterItem(_('All labels'), () => pick(null));
-    all.setOrnament(filter === null ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
-    header.menu.addMenuItem(all);
-    for (const option of options) {
-        const entry = new FilterItem(`${truncate(option.name, 40)} (${option.count})`, () => pick(option.name));
-        entry.setOrnament(filter === option.name ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
-        header.menu.addMenuItem(entry);
-    }
-    if (options.length === 0) {
-        const none = new PopupMenu.PopupMenuItem(_('No labels on these items yet'), {reactive: false});
-        none.add_style_class_name('sourceglance-hint');
-        header.menu.addMenuItem(none);
-    }
-
-    for (const group of filterByLabel(groups, filter)) {
-        // Same ids as the window's lists, so a repository collapses in both places.
-        const id = groupCollapseId(list, section, group.repo);
-        const collapsed = isGroupCollapsed(ui.collapsedGroups, id);
-        ui.menu.addMenuItem(new SectionToggle(truncate(group.repo, 48), String(group.issues.length), collapsed,
-            () => ui.toggleCollapsed(id, 'collapsed-groups'), 'sourceglance-repo'));
-        if (!collapsed) {
-            for (const item of group.issues)
-                addItem(ui, item);
-        }
-    }
+/** A heading for a group of items, with how many there are: plain, not a control. */
+function addGroupHeading(ui, title, count) {
+    const item = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false, style_class: 'sourceglance-repo'});
+    item.add_child(new St.Label({text: truncate(title, 48), x_expand: true, y_align: Clutter.ActorAlign.CENTER}));
+    item.add_child(new St.Label({text: String(count), style_class: 'sourceglance-count', y_align: Clutter.ActorAlign.CENTER}));
+    ui.menu.addMenuItem(item);
+    return item;
 }
 
 /** The always-visible footer: closed items still assigned to you, linking to them. */
@@ -302,64 +240,57 @@ function addClosedFooter(ui, count, url, text, gicon) {
     row.add_style_class_name('sourceglance-footer');
 }
 
-// A header that collapses or expands an account's section (or a repository's items)
-// without closing the menu.
-const SectionToggle = GObject.registerClass({GTypeName: gtypeName('SectionToggle', import.meta.url)},
-class SectionToggle extends PopupMenu.PopupBaseMenuItem {
-    _init(text, count, collapsed, onToggle, styleClass = 'sourceglance-platform') {
-        super._init({style_class: styleClass});
-        this.add_child(new St.Icon({icon_name: collapsed ? 'pan-end-symbolic' : 'pan-down-symbolic',
-            style_class: 'popup-menu-icon'}));
-        this.add_child(new St.Label({text, x_expand: true, y_align: Clutter.ActorAlign.CENTER}));
-        this.add_child(new St.Label({text: count, style_class: 'sourceglance-count', y_align: Clutter.ActorAlign.CENTER}));
-        this._onToggle = onToggle;
+/** The items as groups, built the way Glance → System Tray says (group by): [{id, title, issues}]. */
+function groupsFor(ui, sources, groupsOf) {
+    if (ui.groupBy === 'platform')
+        return groupByPlatform(sources, groupsOf);
+    if (ui.groupBy === 'organization') {
+        // The names you gave organizations (the window keeps the platform's own names).
+        return groupByOrganization(sources, groupsOf, (_account, login) => {
+            const name = ui.organizationNames[login.toLowerCase()] ?? '';
+            return {key: (name || login).toLowerCase(), title: name ? `${name} (@${login})` : `@${login}`};
+        });
     }
-
-    activate(_event) {
-        this._onToggle();
-    }
-});
-
-/** One account's part of a list: status, the label-filtered items, and the closed footer. */
-function renderSource(ui, cfg, src) {
-    const gitlab = src.platform === 'gitlab';
-    if (src.status === 'signed-out') {
-        addInfo(ui, _('Not signed in. Sign in again under Settings → Accounts.'), 'sourceglance-message');
-        return;
-    }
-    if (!src.updatedAt) {
-        addInfo(ui, src.status === 'error' ? errorText(src.error, ui.state.intervalMinutes) : _('Loading…'),
-            'sourceglance-message');
-        return;
-    }
-    if (src.status === 'error')
-        addInfo(ui, errorText(src.error, ui.state.intervalMinutes), 'sourceglance-message');
-    const groups = cfg.key === 'issues' ? src.groups : src.prGroups;
-    if (groups.length === 0)
-        addInfo(ui, gitlab ? cfg.emptyGitLab : cfg.empty, 'sourceglance-message');
-    else
-        addSection(ui, cfg.title, groups, `${cfg.key}:${src.key}`, cfg.key, src.key);
-    addClosedFooter(ui, src.closedCounts[cfg.key], closedPageUrl(src.account, cfg.kind, ui.repos),
-        gitlab ? cfg.closedTextGitLab : cfg.closedText, ui.icons[cfg.closedIcon]);
+    return groupByProject(sources, groupsOf, ui.projectRepos);
 }
 
+/** The list for one kind (issues or pull requests): flat groups across all accounts, no filters, no sections. */
 function renderItemList(ui, cfg) {
     const {state} = ui;
     const sources = state.sources;
     if (sources.length === 0) {
         addInfo(ui, _('Not signed in. Open the Source Glance menu to sign in.'), 'sourceglance-message');
-    } else if (sources.length === 1) {
-        // One account: no section headers, as before there were several.
-        renderSource(ui, cfg, sources[0]);
-    } else {
-        for (const src of sources) {
-            const id = `${cfg.key}:${src.key}`;
-            const collapsed = ui.collapsed.includes(id);
-            ui.menu.addMenuItem(new SectionToggle(truncate(src.title, 48), sourceBadge(cfg.key, src), collapsed,
-                () => ui.toggleCollapsed(id)));
-            if (!collapsed)
-                renderSource(ui, cfg, src);
+        return;
+    }
+    const loaded = sources.filter(src => src.status !== 'signed-out' && src.updatedAt);
+    const groupsOf = src => (cfg.key === 'issues' ? src.groups : src.prGroups) ?? [];
+    const groups = groupsFor(ui, loaded, groupsOf).filter(group => group.issues.length > 0);
+    if (groups.length === 0 && loaded.length > 0) {
+        const gitlabOnly = loaded.every(src => src.platform === 'gitlab');
+        addInfo(ui, gitlabOnly ? cfg.emptyGitLab : cfg.empty, 'sourceglance-message');
+    }
+    for (const group of groups) {
+        addGroupHeading(ui, group.title, group.issues.length);
+        for (const item of group.issues)
+            addItem(ui, item, ui.groupBy === 'project' && group.title === item.repo ? '' : item.repo);
+    }
+
+    // An account that didn't load says so, and each account's closed-but-assigned count follows.
+    for (const src of sources) {
+        const gitlab = src.platform === 'gitlab';
+        if (src.status === 'signed-out') {
+            addInfo(ui, _('%s: not signed in. Sign in again under Settings → Accounts.').format(src.title), 'sourceglance-message');
+            continue;
         }
+        if (!src.updatedAt) {
+            addInfo(ui, src.status === 'error' ? errorText(src.error, state.intervalMinutes) : _('Loading…'),
+                'sourceglance-message');
+            continue;
+        }
+        if (src.status === 'error')
+            addInfo(ui, errorText(src.error, state.intervalMinutes), 'sourceglance-message');
+        addClosedFooter(ui, src.closedCounts[cfg.key], closedPageUrl(src.account, cfg.kind, ui.repos),
+            gitlab ? cfg.closedTextGitLab : cfg.closedText, ui.icons[cfg.closedIcon]);
     }
 
     const closed = state.recentlyClosed.filter(item => item.kind === cfg.kind);
@@ -409,7 +340,7 @@ export function renderPrs(ui) {
 }
 
 /** One GitHub account's boards and their draft items. */
-function renderBoards(ui, src) {
+function renderSourceBoards(ui, src) {
     const {busy} = ui.state;
     if (src.boardsError) {
         addInfo(ui, _('Source Glance can’t read the project boards of this account. Organization boards need the ' +
@@ -427,7 +358,7 @@ function renderBoards(ui, src) {
         return;
     }
     for (const board of withDrafts) {
-        const header = addAction(ui, truncate(board.title, 48), () => openUri(board.url), ui.icons.projects);
+        const header = addAction(ui, truncate(board.title, 48), () => openUri(board.url), ui.icons.boards);
         header.add_style_class_name('sourceglance-section');
         header.setSensitive(Boolean(board.url));
         for (const group of groupDraftsByStatus(board)) {
@@ -439,7 +370,7 @@ function renderBoards(ui, src) {
                 const row = addItemRow(ui, isBusy ? _('%s · working…').format(title) : title,
                     isDoneStatus(draft.status) ? ui.icons.issueClosed : icon('draft'));
                 const move = row.addAction(_('Move to status…'), () => ui.onAction(item, 'status', target),
-                    ui.icons.projects);
+                    ui.icons.boards);
                 move.setSensitive(!isBusy && Boolean(board.fieldId) && board.options.length > 0);
                 row.addAction(_('Open board'), () => openUri(board.url), icon('open')).setSensitive(Boolean(board.url));
             }
@@ -449,27 +380,17 @@ function renderBoards(ui, src) {
     }
 }
 
-export function renderProjects(ui) {
+export function renderBoards(ui) {
     if (!listReady(ui))
         return;
-    // Project boards are GitHub's; each GitHub account gets its own section when there are several.
+    // Project boards are GitHub's. All the GitHub accounts' boards in one flat list, no sections.
     const sources = ui.state.sources.filter(src => src.platform === 'github' && src.status !== 'signed-out');
     if (sources.length === 0) {
         addInfo(ui, _('Project boards come from GitHub accounts. Add one under Settings → Accounts.'), 'sourceglance-message');
         return;
     }
-    if (sources.length === 1) {
-        renderBoards(ui, sources[0]);
-        return;
-    }
-    for (const src of sources) {
-        const id = `projects:${src.key}`;
-        const collapsed = ui.collapsed.includes(id);
-        ui.menu.addMenuItem(new SectionToggle(truncate(src.title, 48), sourceBadge('projects', src), collapsed,
-            () => ui.toggleCollapsed(id)));
-        if (!collapsed)
-            renderBoards(ui, src);
-    }
+    for (const src of sources)
+        renderSourceBoards(ui, src);
 }
 
 function headerText(state) {
@@ -496,20 +417,14 @@ export function renderApp(ui) {
         addInfo(ui, errorText(state.error, state.intervalMinutes), 'sourceglance-message');
     ui.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-    if (signedIn(state)) {
-        addAction(ui, _('Open All Tasks'), () => ui.onOpenTasks(), icon('tasks'));
-        const profiles = state.sources.map(src => ({src, url: profileUrl(src.account)})).filter(({url}) => url);
-        for (const {src, url} of profiles) {
-            addAction(ui, profiles.length === 1 && src.platform === 'github' ? _('Your GitHub profile')
-                : _('Profile: %s').format(truncate(src.title, 40)), () => openUri(url), icon('profile'));
-        }
-        addAction(ui, _('Refresh'), () => ui.onRefresh(), icon('refresh')).setSensitive(!state.refreshing);
-    }
+    // The window's primary sidebar entries, each opening its page, then About after Settings.
+    addAction(ui, _('Glance'), () => ui.onOpenPage('widgets'), icon('glance'));
+    addAction(ui, _('Tasks'), () => ui.onOpenTasks(), icon('tasks'));
     if (signedIn(state))
         addAction(ui, _('Settings'), () => ui.onSettings(), icon('settings'));
     else
         addAction(ui, _('Sign in…'), () => ui.onSettings(), icon('signIn'));
-    addAction(ui, _('About sourceglance'), () => ui.onAbout(), icon('about'));
+    addAction(ui, _('About'), () => ui.onAbout(), icon('about'));
 }
 
 // A switch row that flips without closing the menu, so you see the new state.
@@ -529,4 +444,4 @@ export function addAppFooter(ui) {
     addAction(ui, _('Quit'), () => ui.onQuit(), icon('quit'));
 }
 
-export const VIEWS = {issues: renderIssues, prs: renderPrs, projects: renderProjects, app: renderApp};
+export const VIEWS = {issues: renderIssues, prs: renderPrs, boards: renderBoards, app: renderApp};

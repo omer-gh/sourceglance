@@ -221,3 +221,12 @@ test('closed-page and profile links follow the account', () => {
     assert.equal(profileUrl(gh), 'https://github.com/alice');
     assert.equal(profileUrl({...gh, login: null}), null);
 });
+
+test('sourceFrom leaves out hidden boards but keeps them for the picker', () => {
+    const account = {id: 'github:github.com:a', platform: 'github', base: 'https://github.com', login: 'a'};
+    const boards = [{title: 'Keep', url: 'https://github.com/users/a/projects/1', drafts: []},
+        {title: 'Hide', url: 'https://github.com/users/a/projects/2', drafts: []}];
+    const source = sourceFrom(account, {status: 'ready', boards}, undefined, board => board.title === 'Hide');
+    assert.deepEqual(source.boards.map(board => board.title), ['Keep']);
+    assert.deepEqual(source.allBoards.map(board => board.title), ['Keep', 'Hide']);
+});
