@@ -7,7 +7,6 @@ import {
     aiProvider,
     cleanSuggestion,
     isSignInProblem,
-    loginCommands,
     signInState,
     repoFolderKey,
     shellLine,
@@ -137,7 +136,10 @@ test('terminals start the command in the folder and quote for string-taking ones
     assert.equal(shellLine(['a', "it's"]), "'a' 'it'\\''s'");
 });
 
-test('Codex sign-in falls back to the chatgpt command; others use their own', () => {
-    assert.deepEqual(loginCommands(aiProvider('codex')), ['codex', 'chatgpt']);
-    assert.deepEqual(loginCommands(aiProvider('claude')), ['claude']);
+test('Codex names the desktop app\'s command separately, never as its CLI', () => {
+    const codex = aiProvider('codex');
+    assert.equal(codex.command, 'codex');
+    assert.equal(codex.appCommand, 'chatgpt');
+    assert.equal(aiProvider('claude').appCommand, undefined);
 });
+

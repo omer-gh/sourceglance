@@ -13,7 +13,6 @@ import {
     aiProvider,
     cleanSuggestion,
     isSignInProblem,
-    loginCommands,
     signInState,
     repoFolderKey,
     suggestArgv,
@@ -33,20 +32,6 @@ const SUGGEST_TIMEOUT_SECONDS = 120;
 
 /** Where an agent's command may live besides the PATH (where its installer puts it). */
 function findProgram(command) {
-    return findFirstProgram([command]);
-}
-
-/** The first of `commands` that can be found, or null. */
-function findFirstProgram(commands) {
-    for (const command of commands) {
-        const program = findOne(command);
-        if (program)
-            return program;
-    }
-    return null;
-}
-
-function findOne(command) {
     const onPath = GLib.find_program_in_path(command);
     if (onPath)
         return onPath;
@@ -222,7 +207,7 @@ export class AiAssistant {
     /** Whether the chosen agent is signed in: {signedIn, account}, or null when that can't be told. */
     async signInState() {
         const provider = this.provider;
-        const program = provider?.status && findFirstProgram(loginCommands(provider));
+        const program = provider?.status && findProgram(provider.command);
         if (!program)
             return null;
         try {
@@ -242,12 +227,15 @@ export class AiAssistant {
         const provider = this.provider;
         if (!provider)
             return;
-        const commands = loginCommands(provider);
-        const program = findFirstProgram(commands);
+        const program = findProgram(provider.command);
         if (!program) {
-            this._toast(commands.length > 1
-                ? _('Neither %s nor %s is installed on your PATH').format(commands[0], commands[1])
-                : _('%s isn’t installed, or isn’t on your PATH').format(provider.name));
+            const app = provider.appCommand && findProgram(provider.appCommand);
+            if (app)
+                this._openApp(provider, app);
+            else if (provider.appCommand)
+                this._toast(_('Neither %s nor %s is installed on your PATH').format(provider.command, provider.appCommand));
+            else
+                this._toast(_('%s isn’t installed, or isn’t on your PATH').format(provider.name));
             return;
         }
         this._watchSignIn(provider);
@@ -255,6 +243,16 @@ export class AiAssistant {
             this._signInHeadless(provider, program);
         else
             this._signInInTerminal(provider, program);
+    }
+
+    /** With no CLI to sign in, opens the agent's desktop app (no arguments), where you sign in yourself. */
+    _openApp(provider, app) {
+        try {
+            new Gio.SubprocessLauncher({flags: Gio.SubprocessFlags.NONE}).spawnv([app]);
+            this._toast(_('Sign in to %s in the app that opened. Running it from here still needs the %s command').format(provider.name, provider.command));
+        } catch (e) {
+            this._toast(_('Couldn’t open %s: %s').format(provider.name, e.message));
+        }
     }
 
     /** An empty folder of our own to sign in from, so no agent sees (or asks to trust) your home folder. */

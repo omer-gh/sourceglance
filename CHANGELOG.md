@@ -9,8 +9,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- **Codex sign-in works with the ChatGPT app's command.** When there is no `codex` on the PATH, signing in (and the
-  sign-in check) uses `chatgpt` instead, and the message names both when neither is found.
+- **Codex sign-in without the Codex CLI.** When there is no `codex` on the PATH but the ChatGPT desktop app's `chatgpt`
+  command is, Sign in opens that app to sign in there. If neither is found, the message names both.
 
 ## [0.17.0] - 2026-11-21
 

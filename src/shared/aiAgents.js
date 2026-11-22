@@ -62,8 +62,9 @@ export const AI_PROVIDERS = [
     },
     {
         id: 'codex', name: 'Codex', command: 'codex',
-        // The ChatGPT app ships the same sign-in, so it stands in when there is no `codex` on the PATH.
-        loginCommands: ['codex', 'chatgpt'],
+        // On Linux the ChatGPT desktop app installs a `chatgpt` command that only opens the app, where you
+        // sign in. It has no documented `login` or `exec`, so it never stands in for `codex`.
+        appCommand: 'chatgpt',
         themeIcon: 'utilities-terminal-symbolic',
         interactive: prompt => [prompt],
         once: prompt => ['exec', '--sandbox', 'read-only', '--skip-git-repo-check', prompt],
@@ -83,11 +84,6 @@ export const AI_PROVIDERS = [
         login: ['--skip-trust'],
     },
 ];
-
-/** The commands that can sign this agent in, in the order to look for them. */
-export function loginCommands(provider) {
-    return provider.loginCommands ?? [provider.command];
-}
 
 /** The default agent; '' (None) turns the buttons off. */
 export const DEFAULT_AI_PROVIDER = 'claude';
