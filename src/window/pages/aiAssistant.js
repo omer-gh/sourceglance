@@ -8,8 +8,8 @@ import {gettext as _} from '../i18n.js';
 import {instructionsText} from '../../lib/aiAgents.js';
 import {LOCK_ICON} from './common.js';
 
-/** `ctx` is {window, settings, ai, sync, openPage}. Returns the page. */
-export function buildAiPage({window, settings, ai, sync, openPage}) {
+/** `ctx` is {settings, ai, sync, openPage}. Returns the page. */
+export function buildAiPage({settings, ai, sync, openPage}) {
     const page = new Adw.PreferencesPage();
     const choices = ai.choices;
 
@@ -29,40 +29,11 @@ export function buildAiPage({window, settings, ai, sync, openPage}) {
         description: _('Adds a button to each issue and pull request that opens the agent in a terminal in the repository’s folder, and a Suggest button to the comment box. The agent runs on this computer with your own sign-in to it.')});
     const row = new Adw.ComboRow({title: _('Agent'), subtitle: _('Must be installed; Source Glance only starts it'),
         model: Gtk.StringList.new(choices.map(choice => choice.name))});
-    const signIn = new Adw.ActionRow({title: _('Sign in'),
-        subtitle: ''});
-    const SIGN_IN_HELP = _('Opens the agent’s own sign-in in a terminal; finish it in the browser. Needed once, if suggestions say it isn’t signed in.');
-    const signInButton = new Gtk.Button({label: _('Sign in…'), valign: Gtk.Align.CENTER});
-    signInButton.connect('clicked', () => ai.signIn());
-    signIn.add_suffix(signInButton);
-    signIn.activatable_widget = signInButton;
-    // Whether the agent says it's signed in, where it can tell; checked here, when the window
-    // comes back to the front, and when a sign-in started here completes.
-    const showSignIn = async () => {
-        signIn.subtitle = SIGN_IN_HELP;
-        const state = await ai.signInState();
-        if (state?.signedIn) {
-            signIn.title = _('Signed in');
-            signIn.subtitle = state.account ?? SIGN_IN_HELP;
-            signInButton.label = _('Switch account…');
-        } else {
-            signIn.title = state ? _('Not signed in') : _('Sign in');
-            signInButton.label = _('Sign in…');
-        }
-    };
-    ai.onSignedIn(showSignIn);
-    window.connect('notify::is-active', () => {
-        if (window.is_active)
-            showSignIn();
-    });
     const icon = new Gtk.Image();
     row.add_prefix(icon);
     const showChoice = () => {
         const provider = ai.provider;
         icon.visible = Boolean(provider);
-        signIn.visible = Boolean(provider);
-        if (provider)
-            showSignIn();
         if (provider)
             icon.set_from_gicon(ai.icon(provider));
         row.selected = Math.max(0, choices.findIndex(choice => choice.id === (provider?.id ?? '')));
@@ -75,7 +46,6 @@ export function buildAiPage({window, settings, ai, sync, openPage}) {
     settings.connect('changed::ai-provider', showChoice);
     showChoice();
     agent.add(row);
-    agent.add(signIn);
     page.add(agent);
 
     // Said plainly, where the folders are listed: all Source Glance keeps is the text of each path.

@@ -7,10 +7,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Source Glance no longer tracks whether your AI assistant is signed in.** The Sign in row in Settings → AI assistant and
+  its status check are gone. When the agent can't be used (not installed, not signed in, or it failed), a message says so,
+  in the agent's own words, with buttons to sign in, download it, check its docs or report the problem.
+
 ### Fixed
 
-- **Codex works with the ChatGPT desktop app's package.** When there is no `codex` on the PATH but `chatgpt` is, Sign in,
-  the sign-in check and the AI buttons use the Codex CLI that ships inside that package.
+- **Codex works with the ChatGPT desktop app's package.** When there is no `codex` on the PATH but `chatgpt` is, the AI
+  buttons use the Codex CLI that ships inside that package.
 
 ## [0.17.0] - 2026-11-21
 

@@ -20,43 +20,25 @@ export const MAX_PROMPT_BODY = 6000;
 export const MAX_PROMPT_COMMENTS = 10;
 export const MAX_SUGGESTION_LENGTH = 20000;
 
-/** A status command's JSON: {loggedIn, email}. */
-function parseJsonStatus(output) {
-    const json = JSON.parse(output.trim());
-    if (typeof json?.loggedIn !== 'boolean')
-        return null;
-    return {signedIn: json.loggedIn, account: typeof json.email === 'string' ? json.email : null};
-}
-
-/** A status command's sentence: "Not logged in" or "Logged in using …". */
-function parseTextStatus(output) {
-    if (/not logged in/i.test(output))
-        return {signedIn: false, account: null};
-    return /logged in/i.test(output) ? {signedIn: true, account: null} : null;
-}
-
 /**
  * The agents on offer, in the order the Settings drop-down lists them. `iconName` is a file in
  * src/icons (without .svg) or, for `themeIcon`, a name from the active icon theme. `interactive`
  * and `once` build the command line (after the command itself) for a terminal session and for a
  * single run that prints its answer. `desktop`, where there is one, is the app that handles
  * `scheme` links and builds the link that opens a session there (`uri(folder, prompt)`). `login`
- * is what to run (after the command) to sign the agent in, in a terminal; `status`, where there is
- * one, what to run to print its sign-in state ({args, parse(output)}, read by signInState()). `headlessLogin` means the
- * sign-in can run with no terminal.
+ * is what to run (after the command) to sign the agent in, in a terminal. `downloadUrl` and `docsUrl`
+ * are the agent's own pages for installing it and for signing in, offered when it can't be run.
  */
 export const AI_PROVIDERS = [
     {
         id: 'claude', name: 'Claude Code', command: 'claude', iconName: 'ai-claude-symbolic',
         interactive: prompt => [prompt],
         once: prompt => ['-p', prompt, '--tools', ''],
+        login: ['auth', 'login'],
+        downloadUrl: 'https://code.claude.com/docs/en/quickstart',
+        docsUrl: 'https://code.claude.com/docs/en/authentication',
         // The desktop app's deep link for a new Code session in a folder, with the prompt typed
         // in for the user to send. Preferred over the terminal when the app is installed.
-        login: ['auth', 'login'],
-        // Its sign-in needs no terminal: it opens the browser itself and finishes when you approve there.
-        headlessLogin: true,
-        // Prints whether it's signed in, as JSON.
-        status: {args: ['auth', 'status'], parse: parseJsonStatus},
         desktop: {scheme: 'claude', uri: (folder, prompt) =>
             `claude://code/new?folder=${encodeURIComponent(folder)}&q=${encodeURIComponent(prompt)}`},
     },
@@ -69,8 +51,8 @@ export const AI_PROVIDERS = [
         interactive: prompt => [prompt],
         once: prompt => ['exec', '--sandbox', 'read-only', '--skip-git-repo-check', prompt],
         login: ['login'],
-        headlessLogin: true,
-        status: {args: ['login', 'status'], parse: parseTextStatus},
+        downloadUrl: 'https://developers.openai.com/codex/cli',
+        docsUrl: 'https://developers.openai.com/codex/auth',
         // The Codex app's deep link for a new thread in a folder, with the prompt typed in.
         desktop: {scheme: 'codex', uri: (folder, prompt) =>
             `codex://new?path=${encodeURIComponent(folder)}&prompt=${encodeURIComponent(prompt)}`},
@@ -82,6 +64,8 @@ export const AI_PROVIDERS = [
         // Gemini has no sign-in command: it asks the first time it runs. --skip-trust keeps it from
         // asking to trust the empty folder it's started in.
         login: ['--skip-trust'],
+        downloadUrl: 'https://github.com/google-gemini/gemini-cli',
+        docsUrl: 'https://geminicli.com/docs/get-started/authentication/',
     },
 ];
 
@@ -202,20 +186,6 @@ export function suggestPrompt(item, details, hint, prompts) {
 /** Whether an agent's error line says it isn't signed in (or its sign-in ran out). */
 export function isSignInProblem(text) {
     return /oauth|authenticat|sign.?in|log.?in|unauthori[sz]ed|credential|api key|\b401\b/i.test(String(text ?? ''));
-}
-
-/**
- * Whether the agent is signed in, from the output of its `status` command: {signedIn, account}
- * with signedIn true or false, or null when it can't tell (no status command, odd output).
- */
-export function signInState(provider, output) {
-    if (!provider.status)
-        return null;
-    try {
-        return provider.status.parse(String(output ?? ''));
-    } catch {
-        return null;
-    }
 }
 
 /** An agent's printed answer, ready for the comment box: trimmed, and not wrapped in a code fence. */

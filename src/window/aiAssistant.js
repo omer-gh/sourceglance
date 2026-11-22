@@ -1,11 +1,13 @@
 // The AI assistant in the window: the agent chosen in Settings → AI assistant, started on an
 // issue or pull request in a terminal (work()), or run once for a comment draft (suggest()).
 // The command lines, prompts and terminal list are in lib/aiAgents.js.
+import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 
 import {gettext as _} from './i18n.js';
+import {REPO_URL} from '../lib/config.js';
 
 import {
     AI_PROVIDERS,
@@ -13,7 +15,6 @@ import {
     aiProvider,
     cleanSuggestion,
     isSignInProblem,
-    signInState,
     repoFolderKey,
     suggestArgv,
     suggestPrompt,
@@ -23,9 +24,6 @@ import {
 
 Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_utf8_finish');
 Gio._promisify(Gtk.FileDialog.prototype, 'select_folder', 'select_folder_finish');
-
-/** A sign-in that hasn't finished by then is stopped. */
-const SIGN_IN_TIMEOUT_SECONDS = 300;
 
 /** A suggestion that takes longer than this is stopped. */
 const SUGGEST_TIMEOUT_SECONDS = 120;
@@ -79,12 +77,6 @@ export class AiAssistant {
         this._settings = settings;
         this._toast = toast;
         this._iconDir = iconDir;
-        this._watch = 0;
-        this._signInCallbacks = [];
-        window.connect('close-request', () => {
-            this._stopWatching();
-            return false;
-        });
         this._hasKeys = settings.settings_schema.has_key('ai-provider') && settings.settings_schema.has_key('repo-folders')
             && settings.settings_schema.has_key('ai-instructions');
     }
@@ -195,7 +187,7 @@ export class AiAssistant {
         const desktop = provider.desktop && Gio.AppInfo.get_default_for_uri_scheme(provider.desktop.scheme);
         const program = findProgram(provider);
         if (!desktop && !program) {
-            this._toast(_('%s isn’t installed, or isn’t on your PATH').format(provider.name));
+            this._notInstalled(provider);
             return;
         }
         const folder = this.folderFor(item) ?? await this._chooseFolder(item);
@@ -208,7 +200,7 @@ export class AiAssistant {
                 return;
             } catch (e) {
                 if (!program) {
-                    this._toast(_('Couldn’t open %s: %s').format(provider.name, e.message));
+                    this._problem(provider, {heading: _('Couldn’t open %s').format(provider.name), reason: e.message});
                     return;
                 }
             }
@@ -235,130 +227,50 @@ export class AiAssistant {
         this._toast(_('No terminal program was found'));
     }
 
-    /** Whether the chosen agent is signed in: {signedIn, account}, or null when that can't be told. */
-    async signInState() {
-        const provider = this.provider;
-        const program = provider?.status && findProgram(provider);
-        if (!program)
-            return null;
-        try {
-            const launcher = new Gio.SubprocessLauncher({flags: Gio.SubprocessFlags.STDIN_PIPE | Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE});
-            launcher.set_cwd(GLib.get_tmp_dir());
-            const process = launcher.spawnv([program, ...provider.status.args]);
-            // Some agents say it on stderr.
-            const [stdout, stderr] = await process.communicate_utf8_async(null, null);
-            return signInState(provider, `${stdout ?? ''}\n${stderr ?? ''}`);
-        } catch {
-            return null;
-        }
-    }
-
-    /** Signs the chosen agent in: its own sign-in, in a terminal, where you finish it in the browser. */
-    signIn() {
-        const provider = this.provider;
-        if (!provider)
-            return;
-        const program = findProgram(provider);
-        if (!program) {
-            this._toast(_('%s isn’t installed, or isn’t on your PATH').format(provider.name));
-            return;
-        }
-        this._watchSignIn(provider);
-        if (provider.headlessLogin)
-            this._signInHeadless(provider, program);
-        else
-            this._signInInTerminal(provider, program);
-    }
-
-    /** An empty folder of our own to sign in from, so no agent sees (or asks to trust) your home folder. */
-    _signInFolder() {
+    /** Opens the agent's own sign-in in a terminal, from an empty folder of our own so no agent sees (or asks to trust) your home folder. */
+    _signIn(provider, program) {
         const folder = GLib.build_filenamev([GLib.get_user_cache_dir(), 'sourceglance', 'sign-in']);
         GLib.mkdir_with_parents(folder, 0o700);
-        return folder;
-    }
-
-    _signInInTerminal(provider, program) {
-        this._inTerminal(this._signInFolder(), [program, ...provider.login],
+        this._inTerminal(folder, [program, ...provider.login],
             _('Sign in to %s in the terminal, then try again').format(provider.name));
     }
 
     /**
-     * Runs the sign-in with no terminal: the agent opens the browser itself, and the watch (above)
-     * brings this window back once it's signed in. If the agent fails, or stops short of
-     * finishing, the toast offers the terminal, where it can ask for what it needs.
+     * Tells the user the agent couldn't be used, with what they can do about it: `reason` is the agent's
+     * own words (or ''), `signIn` and `install` say which of "Sign in" and "Download" make sense. Docs and
+     * Report problem are always there. Source Glance doesn't track whether an agent is signed in: it
+     * finds out when the agent says so.
      */
-    async _signInHeadless(provider, program) {
-        this._toast(_('Finish signing in to %s in your browser').format(provider.name));
-        let process = null;
-        let timeout = 0;
-        try {
-            const launcher = new Gio.SubprocessLauncher({flags: Gio.SubprocessFlags.STDIN_PIPE | Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE});
-            launcher.set_cwd(this._signInFolder());
-            process = launcher.spawnv([program, ...provider.login]);
-            timeout = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, SIGN_IN_TIMEOUT_SECONDS, () => {
-                timeout = 0;
-                process.force_exit();
-                return GLib.SOURCE_REMOVE;
-            });
-            // Nothing to send on stdin: an agent that wants a pasted code fails here, and the toast offers the terminal.
-            const [stdout, stderr] = await process.communicate_utf8_async(null, null);
-            if (process.get_successful())
-                return;
-            if (this._watch && this.provider === provider) {
-                this._stopWatching();
-                const reason = [stderr, stdout].flatMap(out => (out ?? '').split('\n')).map(line => line.trim()).find(Boolean);
-                this._toast(reason ? _('%s sign-in: %s').format(provider.name, reason.slice(0, 120))
-                    : _('%s sign-in didn’t finish').format(provider.name),
-                {label: _('Use terminal'), onClick: () => this._signInInTerminal(provider, program)});
-            }
-        } catch (e) {
-            this._stopWatching();
-            this._toast(_('Couldn’t start the sign-in: %s').format(e.message),
-                {label: _('Use terminal'), onClick: () => this._signInInTerminal(provider, program)});
-        } finally {
-            if (timeout)
-                GLib.source_remove(timeout);
+    _problem(provider, {heading, reason = '', signIn = false, install = false}) {
+        const program = signIn ? findProgram(provider) : null;
+        const dialog = new Adw.AlertDialog({heading, body: reason.slice(0, 300)});
+        dialog.add_response('close', _('Close'));
+        const main = program ? 'sign-in' : install ? 'download' : '';
+        if (program)
+            dialog.add_response('sign-in', _('Sign in'));
+        if (install)
+            dialog.add_response('download', _('Download'));
+        dialog.add_response('docs', _('Check docs'));
+        dialog.add_response('report', _('Report problem'));
+        if (main) {
+            dialog.set_response_appearance(main, Adw.ResponseAppearance.SUGGESTED);
+            dialog.set_default_response(main);
         }
-    }
-
-    /**
-     * After Sign in, the terminal and the browser take the focus. Check every few seconds
-     * (for up to 5 minutes) and, once the agent is signed in, bring this window back and say so.
-     */
-    _watchSignIn(provider) {
-        if (!provider.status)
-            return;
-        if (this._watch)
-            GLib.source_remove(this._watch);
-        let checks = 0;
-        this._watch = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
-            checks++;
-            this.signInState().then(state => {
-                if (!this._watch || this.provider !== provider)
-                    return;
-                if (state?.signedIn) {
-                    this._stopWatching();
-                    this._window.present();
-                    this._toast(_('Signed in to %s').format(provider.name));
-                    for (const callback of this._signInCallbacks)
-                        callback();
-                } else if (checks >= 100) {
-                    this._stopWatching();
-                }
-            });
-            return this._watch ? GLib.SOURCE_CONTINUE : GLib.SOURCE_REMOVE;
+        dialog.set_close_response('close');
+        dialog.connect('response', (_dialog, response) => {
+            const links = {download: provider.downloadUrl, docs: provider.docsUrl, report: `${REPO_URL}/issues/new/choose`};
+            if (response === 'sign-in')
+                this._signIn(provider, program);
+            else if (links[response])
+                new Gtk.UriLauncher({uri: links[response]}).launch(this._window, null, null);
         });
+        dialog.present(this._window);
     }
 
-    _stopWatching() {
-        if (this._watch)
-            GLib.source_remove(this._watch);
-        this._watch = 0;
-    }
-
-    /** Runs `callback` when a sign-in started here has completed. */
-    onSignedIn(callback) {
-        this._signInCallbacks.push(callback);
+    /** The agent isn't installed, or isn't on the PATH. */
+    _notInstalled(provider) {
+        this._problem(provider, {heading: _('%s isn’t installed').format(provider.name),
+            reason: _('Source Glance couldn’t find “%s” on your PATH.').format(provider.command), install: true});
     }
 
     /**
@@ -376,7 +288,7 @@ export class AiAssistant {
         }
         const program = findProgram(provider);
         if (!program) {
-            this._toast(_('%s isn’t installed, or isn’t on your PATH').format(provider.name));
+            this._notInstalled(provider);
             return null;
         }
         const argv = suggestArgv(provider, program, suggestPrompt(item, details, hint, this.prompts));
@@ -400,13 +312,13 @@ export class AiAssistant {
             // Say why, in the agent's own words, when it said any (e.g. its sign-in expired).
             const reason = [stderr, stdout].flatMap(out => (out ?? '').split('\n')).map(line => line.trim()).find(Boolean);
             if (isSignInProblem(`${reason} ${stderr}`)) {
-                this._toast(_('%s isn’t signed in').format(provider.name), {label: _('Sign in'), onClick: () => this.signIn()});
+                this._problem(provider, {heading: _('%s isn’t signed in').format(provider.name), reason, signIn: true});
             } else {
-                this._toast(reason ? _('%s: %s').format(provider.name, reason.slice(0, 160))
-                    : _('%s didn’t give a suggestion').format(provider.name));
+                this._problem(provider, {heading: reason ? _('%s couldn’t finish').format(provider.name)
+                    : _('%s didn’t give a suggestion').format(provider.name), reason});
             }
         } catch (e) {
-            this._toast(_('Couldn’t run %s: %s').format(provider.name, e.message));
+            this._problem(provider, {heading: _('Couldn’t run %s').format(provider.name), reason: e.message});
         } finally {
             if (timeout)
                 GLib.source_remove(timeout);

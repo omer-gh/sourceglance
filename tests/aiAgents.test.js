@@ -7,7 +7,6 @@ import {
     aiProvider,
     cleanSuggestion,
     isSignInProblem,
-    signInState,
     repoFolderKey,
     shellLine,
     suggestArgv,
@@ -111,17 +110,12 @@ test('isSignInProblem recognises sign-in errors', () => {
     assert.equal(isSignInProblem(undefined), false);
 });
 
-test('signInState reads the status command output', () => {
-    const claude = aiProvider('claude');
-    assert.deepEqual(signInState(claude, '{"loggedIn": true, "email": "a@b.c"}'), {signedIn: true, account: 'a@b.c'});
-    assert.deepEqual(signInState(claude, '{"loggedIn": false}'), {signedIn: false, account: null});
-    assert.equal(signInState(claude, 'nope'), null);
-    assert.equal(signInState(claude, '{}'), null);
-    assert.equal(signInState(aiProvider('gemini'), '{"loggedIn": true}'), null);
-    const codex = aiProvider('codex');
-    assert.equal(signInState(codex, 'Not logged in\n').signedIn, false);
-    assert.equal(signInState(codex, 'Logged in using ChatGPT').signedIn, true);
-    assert.equal(signInState(codex, 'something else'), null);
+test('every agent has the pages offered when it can\'t be run', () => {
+    for (const provider of AI_PROVIDERS) {
+        assert.match(provider.downloadUrl, /^https:\/\//, provider.id);
+        assert.match(provider.docsUrl, /^https:\/\//, provider.id);
+        assert.equal('status' in provider, false, provider.id);
+    }
 });
 
 test('cleanSuggestion trims and unwraps a code fence', () => {
