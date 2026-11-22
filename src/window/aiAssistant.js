@@ -237,16 +237,15 @@ export class AiAssistant {
 
     /**
      * Tells the user the agent couldn't be used, with what they can do about it: `reason` is the agent's
-     * own words (or ''), `signIn` and `install` say which of "Sign in" and "Download" make sense. Docs and
-     * Report problem are always there. Source Glance doesn't track whether an agent is signed in: it
+     * own words (or ''), `signIn` the program to sign in with (or null) and `install` whether to offer
+     * "Download". Docs and Report problem are always there. Source Glance doesn't track whether an agent is signed in: it
      * finds out when the agent says so.
      */
-    _problem(provider, {heading, reason = '', signIn = false, install = false}) {
-        const program = signIn ? findProgram(provider) : null;
+    _problem(provider, {heading, reason = '', signIn = null, install = false}) {
         const dialog = new Adw.AlertDialog({heading, body: reason.slice(0, 300)});
         dialog.add_response('close', _('Close'));
-        const main = program ? 'sign-in' : install ? 'download' : '';
-        if (program)
+        const main = signIn ? 'sign-in' : install ? 'download' : '';
+        if (signIn)
             dialog.add_response('sign-in', _('Sign in'));
         if (install)
             dialog.add_response('download', _('Download'));
@@ -260,7 +259,7 @@ export class AiAssistant {
         dialog.connect('response', (_dialog, response) => {
             const links = {download: provider.downloadUrl, docs: provider.docsUrl, report: `${REPO_URL}/issues/new/choose`};
             if (response === 'sign-in')
-                this._signIn(provider, program);
+                this._signIn(provider, signIn);
             else if (links[response])
                 new Gtk.UriLauncher({uri: links[response]}).launch(this._window, null, null);
         });
@@ -312,7 +311,7 @@ export class AiAssistant {
             // Say why, in the agent's own words, when it said any (e.g. its sign-in expired).
             const reason = [stderr, stdout].flatMap(out => (out ?? '').split('\n')).map(line => line.trim()).find(Boolean);
             if (isSignInProblem(`${reason} ${stderr}`)) {
-                this._problem(provider, {heading: _('%s isn’t signed in').format(provider.name), reason, signIn: true});
+                this._problem(provider, {heading: _('%s isn’t signed in').format(provider.name), reason, signIn: program});
             } else {
                 this._problem(provider, {heading: reason ? _('%s couldn’t finish').format(provider.name)
                     : _('%s didn’t give a suggestion').format(provider.name), reason});
