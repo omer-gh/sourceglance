@@ -44,7 +44,7 @@ export const AI_PROVIDERS = [
     },
     {
         id: 'codex', name: 'Codex', command: 'codex',
-        // The ChatGPT desktop app's package (`chatgpt` on the PATH) carries the Codex CLI in its own folder.
+        // The desktop app's package (`chatgpt` on the PATH) carries the Codex CLI in its own folder.
         // That copy stands in when there is no `codex` on the PATH.
         bundledIn: {command: 'chatgpt', path: ['resources', 'codex']},
         themeIcon: 'utilities-terminal-symbolic',

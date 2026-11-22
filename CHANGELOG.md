@@ -15,8 +15,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- **Codex works with the ChatGPT desktop app's package.** When there is no `codex` on the PATH but `chatgpt` is, the AI
-  buttons use the Codex CLI that ships inside that package.
+- **Codex works with the desktop app's package.** When there is no `codex` on the PATH but the app's `chatgpt` command is,
+  the AI buttons use the Codex CLI that ships inside that package.
 
 ## [0.17.0] - 2026-11-21
 

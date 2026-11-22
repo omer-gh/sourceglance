@@ -130,7 +130,7 @@ test('terminals start the command in the folder and quote for string-taking ones
     assert.equal(shellLine(['a', "it's"]), "'a' 'it'\\''s'");
 });
 
-test('Codex can be found inside the ChatGPT app package; other agents have no such place', () => {
+test('Codex can be found inside the desktop app package; other agents have no such place', () => {
     assert.deepEqual(aiProvider('codex').bundledIn, {command: 'chatgpt', path: ['resources', 'codex']});
     assert.equal(aiProvider('claude').bundledIn, undefined);
 });
