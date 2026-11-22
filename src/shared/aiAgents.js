@@ -61,7 +61,10 @@ export const AI_PROVIDERS = [
             `claude://code/new?folder=${encodeURIComponent(folder)}&q=${encodeURIComponent(prompt)}`},
     },
     {
-        id: 'codex', name: 'Codex', command: 'codex', themeIcon: 'utilities-terminal-symbolic',
+        id: 'codex', name: 'Codex', command: 'codex',
+        // The ChatGPT app ships the same sign-in, so it stands in when there is no `codex` on the PATH.
+        loginCommands: ['codex', 'chatgpt'],
+        themeIcon: 'utilities-terminal-symbolic',
         interactive: prompt => [prompt],
         once: prompt => ['exec', '--sandbox', 'read-only', '--skip-git-repo-check', prompt],
         login: ['login'],
@@ -80,6 +83,11 @@ export const AI_PROVIDERS = [
         login: ['--skip-trust'],
     },
 ];
+
+/** The commands that can sign this agent in, in the order to look for them. */
+export function loginCommands(provider) {
+    return provider.loginCommands ?? [provider.command];
+}
 
 /** The default agent; '' (None) turns the buttons off. */
 export const DEFAULT_AI_PROVIDER = 'claude';

@@ -13,6 +13,7 @@ import {
     aiProvider,
     cleanSuggestion,
     isSignInProblem,
+    loginCommands,
     signInState,
     repoFolderKey,
     suggestArgv,
@@ -32,6 +33,20 @@ const SUGGEST_TIMEOUT_SECONDS = 120;
 
 /** Where an agent's command may live besides the PATH (where its installer puts it). */
 function findProgram(command) {
+    return findFirstProgram([command]);
+}
+
+/** The first of `commands` that can be found, or null. */
+function findFirstProgram(commands) {
+    for (const command of commands) {
+        const program = findOne(command);
+        if (program)
+            return program;
+    }
+    return null;
+}
+
+function findOne(command) {
     const onPath = GLib.find_program_in_path(command);
     if (onPath)
         return onPath;
@@ -207,7 +222,7 @@ export class AiAssistant {
     /** Whether the chosen agent is signed in: {signedIn, account}, or null when that can't be told. */
     async signInState() {
         const provider = this.provider;
-        const program = provider?.status && findProgram(provider.command);
+        const program = provider?.status && findFirstProgram(loginCommands(provider));
         if (!program)
             return null;
         try {
@@ -227,9 +242,12 @@ export class AiAssistant {
         const provider = this.provider;
         if (!provider)
             return;
-        const program = findProgram(provider.command);
+        const commands = loginCommands(provider);
+        const program = findFirstProgram(commands);
         if (!program) {
-            this._toast(_('%s isn’t installed, or isn’t on your PATH').format(provider.name));
+            this._toast(commands.length > 1
+                ? _('Neither %s nor %s is installed on your PATH').format(commands[0], commands[1])
+                : _('%s isn’t installed, or isn’t on your PATH').format(provider.name));
             return;
         }
         this._watchSignIn(provider);

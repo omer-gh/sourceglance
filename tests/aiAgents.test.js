@@ -7,6 +7,7 @@ import {
     aiProvider,
     cleanSuggestion,
     isSignInProblem,
+    loginCommands,
     signInState,
     repoFolderKey,
     shellLine,
@@ -134,4 +135,9 @@ test('terminals start the command in the folder and quote for string-taking ones
     const [ptyxis] = TERMINALS;
     assert.deepEqual(ptyxis.argv('/w', ['a', 'b c']), ['-d', '/w', '--', 'a', 'b c']);
     assert.equal(shellLine(['a', "it's"]), "'a' 'it'\\''s'");
+});
+
+test('Codex sign-in falls back to the chatgpt command; others use their own', () => {
+    assert.deepEqual(loginCommands(aiProvider('codex')), ['codex', 'chatgpt']);
+    assert.deepEqual(loginCommands(aiProvider('claude')), ['claude']);
 });
