@@ -30,13 +30,44 @@ const SIGN_IN_TIMEOUT_SECONDS = 300;
 /** A suggestion that takes longer than this is stopped. */
 const SUGGEST_TIMEOUT_SECONDS = 120;
 
-/** Where an agent's command may live besides the PATH (where its installer puts it). */
-function findProgram(command) {
+/** Where a command may live besides the PATH (where its installer puts it). */
+function findCommand(command) {
     const onPath = GLib.find_program_in_path(command);
     if (onPath)
         return onPath;
     const local = GLib.build_filenamev([GLib.get_home_dir(), '.local', 'bin', command]);
     return GLib.file_test(local, GLib.FileTest.IS_EXECUTABLE) ? local : null;
+}
+
+/** `path` with its symbolic links followed (a few levels at most). */
+function resolveLinks(path) {
+    let file = Gio.File.new_for_path(path);
+    for (let level = 0; level < 8; level++) {
+        const info = file.query_info('standard::symlink-target', Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null);
+        if (!info.has_attribute('standard::symlink-target'))
+            break;
+        file = file.get_parent().resolve_relative_path(info.get_symlink_target());
+    }
+    return file.get_path();
+}
+
+/**
+ * The agent's command: its own, or the copy inside the package of the app named by `bundledIn`
+ * (found through the PATH, like any command; the copy sits in that package's own folder).
+ */
+function findProgram(provider) {
+    const own = findCommand(provider.command);
+    if (own || !provider.bundledIn)
+        return own;
+    const host = findCommand(provider.bundledIn.command);
+    if (!host)
+        return null;
+    try {
+        const bundled = GLib.build_filenamev([GLib.path_get_dirname(resolveLinks(host)), ...provider.bundledIn.path]);
+        return GLib.file_test(bundled, GLib.FileTest.IS_EXECUTABLE) ? bundled : null;
+    } catch {
+        return null;
+    }
 }
 
 export class AiAssistant {
@@ -162,7 +193,7 @@ export class AiAssistant {
         }
         // The desktop app, when there is one, comes first; the terminal is the fallback.
         const desktop = provider.desktop && Gio.AppInfo.get_default_for_uri_scheme(provider.desktop.scheme);
-        const program = findProgram(provider.command);
+        const program = findProgram(provider);
         if (!desktop && !program) {
             this._toast(_('%s isn’t installed, or isn’t on your PATH').format(provider.name));
             return;
@@ -207,7 +238,7 @@ export class AiAssistant {
     /** Whether the chosen agent is signed in: {signedIn, account}, or null when that can't be told. */
     async signInState() {
         const provider = this.provider;
-        const program = provider?.status && findProgram(provider.command);
+        const program = provider?.status && findProgram(provider);
         if (!program)
             return null;
         try {
@@ -227,15 +258,9 @@ export class AiAssistant {
         const provider = this.provider;
         if (!provider)
             return;
-        const program = findProgram(provider.command);
+        const program = findProgram(provider);
         if (!program) {
-            const app = provider.appCommand && findProgram(provider.appCommand);
-            if (app)
-                this._openApp(provider, app);
-            else if (provider.appCommand)
-                this._toast(_('Neither %s nor %s is installed on your PATH').format(provider.command, provider.appCommand));
-            else
-                this._toast(_('%s isn’t installed, or isn’t on your PATH').format(provider.name));
+            this._toast(_('%s isn’t installed, or isn’t on your PATH').format(provider.name));
             return;
         }
         this._watchSignIn(provider);
@@ -243,16 +268,6 @@ export class AiAssistant {
             this._signInHeadless(provider, program);
         else
             this._signInInTerminal(provider, program);
-    }
-
-    /** With no CLI to sign in, opens the agent's desktop app (no arguments), where you sign in yourself. */
-    _openApp(provider, app) {
-        try {
-            new Gio.SubprocessLauncher({flags: Gio.SubprocessFlags.NONE}).spawnv([app]);
-            this._toast(_('Sign in to %s in the app that opened. Running it from here still needs the %s command').format(provider.name, provider.command));
-        } catch (e) {
-            this._toast(_('Couldn’t open %s: %s').format(provider.name, e.message));
-        }
     }
 
     /** An empty folder of our own to sign in from, so no agent sees (or asks to trust) your home folder. */
@@ -359,7 +374,7 @@ export class AiAssistant {
             this._toast(this.disabledReason);
             return null;
         }
-        const program = findProgram(provider.command);
+        const program = findProgram(provider);
         if (!program) {
             this._toast(_('%s isn’t installed, or isn’t on your PATH').format(provider.name));
             return null;

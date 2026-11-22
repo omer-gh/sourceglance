@@ -136,10 +136,8 @@ test('terminals start the command in the folder and quote for string-taking ones
     assert.equal(shellLine(['a', "it's"]), "'a' 'it'\\''s'");
 });
 
-test('Codex names the desktop app\'s command separately, never as its CLI', () => {
-    const codex = aiProvider('codex');
-    assert.equal(codex.command, 'codex');
-    assert.equal(codex.appCommand, 'chatgpt');
-    assert.equal(aiProvider('claude').appCommand, undefined);
+test('Codex can be found inside the ChatGPT app package; other agents have no such place', () => {
+    assert.deepEqual(aiProvider('codex').bundledIn, {command: 'chatgpt', path: ['resources', 'codex']});
+    assert.equal(aiProvider('claude').bundledIn, undefined);
 });
 

@@ -62,9 +62,9 @@ export const AI_PROVIDERS = [
     },
     {
         id: 'codex', name: 'Codex', command: 'codex',
-        // On Linux the ChatGPT desktop app installs a `chatgpt` command that only opens the app, where you
-        // sign in. It has no documented `login` or `exec`, so it never stands in for `codex`.
-        appCommand: 'chatgpt',
+        // The ChatGPT desktop app's package (`chatgpt` on the PATH) carries the Codex CLI in its own folder.
+        // That copy stands in when there is no `codex` on the PATH.
+        bundledIn: {command: 'chatgpt', path: ['resources', 'codex']},
         themeIcon: 'utilities-terminal-symbolic',
         interactive: prompt => [prompt],
         once: prompt => ['exec', '--sandbox', 'read-only', '--skip-git-repo-check', prompt],
