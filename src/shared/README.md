@@ -7,8 +7,9 @@ one-line re-exports left in `src/lib/` (so their imports didn't change), and the
 
 What lives here: the request builders and parsers for GitHub and GitLab (`model.js`, `gitlabModel.js`, `requests.js`),
 accounts (`accounts.js`), grouping, filters, counts and search (`model.js`), projects (`projects.js`), organization names
-(`names.js`), repository access (`repoAccess.js`), Markdown (`markdown.js`), the sync client's requests and parsers (`sync.js`) and
-the AI agents and prompt templates (`aiAgents.js`).
+(`names.js`), repository access (`repoAccess.js`), Markdown (`markdown.js`), the sync client's requests and parsers (`sync.js`), the AI
+agents and prompt templates (`aiAgents.js`), and the account list and per-account loading (`accountRegistry.js`, `loader.js`,
+`gitlabLoader.js`, with `cancellation.js` for telling a cancelled request from a failed one).
 
 ## Rules
 

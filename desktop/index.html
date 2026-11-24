@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Source Glance</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <!-- The window, laid out like Ubuntu's: the sections (Glance, Tasks, Settings, Exit), the
+       section's pages, and the page under a header with search, Refresh and Accounts. -->
+  <div class="app">
+    <nav class="sidebar primary" aria-label="Sections">
+      <div class="sidebar-header" data-tauri-drag-region>
+        <img class="app-icon" alt="" data-tauri-drag-region>
+        <span data-tauri-drag-region>Source Glance</span>
+      </div>
+      <ul class="nav">
+        <li><button type="button" data-section="glance"><span class="icon" data-icon="app"></span>Glance</button></li>
+        <li><button type="button" data-section="tasks"><span class="icon" data-icon="tasks"></span>Tasks</button></li>
+      </ul>
+      <ul class="nav bottom">
+        <li><button type="button" data-section="settings"><span class="icon" data-icon="settings"></span>Settings</button></li>
+        <li><button type="button" id="exit"><span class="icon" data-icon="quit"></span>Exit</button></li>
+      </ul>
+    </nav>
+
+    <nav class="sidebar secondary" aria-labelledby="section-title">
+      <div class="sidebar-header" data-tauri-drag-region><h2 id="section-title" data-tauri-drag-region></h2></div>
+      <ul id="section-pages" class="nav"></ul>
+    </nav>
+
+    <div class="content">
+      <header class="content-header" data-tauri-drag-region>
+        <h1 id="page-title" data-tauri-drag-region></h1>
+        <input id="search" class="search" type="search" placeholder="Search lists" aria-label="Search lists" spellcheck="false">
+        <span id="status" class="status" role="status"></span>
+        <button type="button" id="refresh" class="flat" title="Refresh" aria-label="Refresh"><span class="icon" data-icon="refresh"></span></button>
+        <button type="button" id="accounts-button" class="flat accounts-button" aria-haspopup="true" aria-expanded="false"><span class="icon" data-icon="assignees"></span>Accounts</button>
+      </header>
+      <div id="accounts-card" class="accounts-card" role="dialog" aria-label="Accounts" hidden></div>
+
+      <main class="pages">
+        <!-- Glance: Widgets and System Tray on one page, as on Ubuntu. -->
+        <section id="page-glance" class="page" hidden>
+          <h2 id="widgets" class="page-heading">Widgets</h2>
+          <div class="card widgets-placeholder">
+            <p><strong>Desktop widgets are coming.</strong> Cards for your lists that sit on the desktop, under your windows, are the next part of the Mac app.</p>
+          </div>
+
+          <div class="heading-row" id="tray">
+            <h2 class="page-heading">System Tray</h2>
+            <div class="heading-controls">
+              <label class="inline">Top bar <input id="bar-enabled" class="switch" type="checkbox" role="switch" aria-label="Show Source Glance in the menu bar"></label>
+              <span class="divider"></span>
+              <label class="inline">Group by
+                <select id="group-by">
+                  <option value="project">Project</option>
+                  <option value="platform">Platform</option>
+                  <option value="organization">Organization</option>
+                </select>
+              </label>
+              <label class="inline" title="Minutes between checks"><span class="icon" data-icon="refresh"></span>
+                <input id="refresh-interval" type="number" min="1" max="120" step="1" aria-label="Minutes between checks"> min</label>
+            </div>
+          </div>
+          <p class="hint">Off takes Source Glance out of the menu bar and stops checking in the background. This window keeps working; close it and Source Glance quits.</p>
+          <div class="tiles" role="radiogroup" aria-label="Menu bar layout">
+            <label class="tile">
+              <span class="tile-preview separate" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+              <span class="inline"><input type="radio" name="layout" value="separate"> Separate menu-bar items</span>
+            </label>
+            <label class="tile">
+              <span class="tile-preview tabs" aria-hidden="true"><span></span></span>
+              <span class="inline"><input type="radio" name="layout" value="tabs"> Tabs in one menu (best with the notch)</span>
+            </label>
+          </div>
+          <fieldset class="lists">
+            <legend>Lists in the menu bar</legend>
+            <label class="inline"><input type="checkbox" name="button" value="issues"> Issues</label>
+            <label class="inline"><input type="checkbox" name="button" value="prs"> Pull requests</label>
+            <label class="inline"><input type="checkbox" name="button" value="boards"> Project Boards</label>
+          </fieldset>
+        </section>
+
+        <!-- Tasks: All Tasks, Issues, Pull requests and Project Boards. -->
+        <section id="page-tasks" class="page wide" hidden>
+          <div id="list-body"></div>
+        </section>
+
+        <!-- Settings → Accounts. -->
+        <section id="accounts" class="page" hidden>
+          <h2 class="page-heading">Accounts</h2>
+          <p class="hint">Items from every account show in the lists. Changes run as the account the item came from.</p>
+          <ul id="account-list" class="card-list account-list"></ul>
+          <p id="no-accounts" class="hint" hidden>No account yet. Add one to see what's assigned to you.</p>
+          <p id="accounts-message" class="hint" role="status"></p>
+
+          <h2 class="page-heading">Add an account</h2>
+          <form id="add-account" class="card form">
+            <label>Platform
+              <select id="platform">
+                <option value="github">GitHub</option>
+                <option value="gitlab">GitLab</option>
+              </select>
+            </label>
+            <label>Instance
+              <input id="instance" type="text" placeholder="github.com, or your own instance" autocomplete="off" spellcheck="false">
+            </label>
+            <fieldset>
+              <legend>Sign in with</legend>
+              <label class="inline"><input type="radio" name="method" value="device" checked> Browser sign-in</label>
+              <label class="inline"><input type="radio" name="method" value="pat"> Personal access token</label>
+            </fieldset>
+            <label id="token-row" hidden>Token
+              <input id="token" type="password" autocomplete="off" spellcheck="false">
+            </label>
+            <div class="row-buttons">
+              <button type="submit" class="primary">Add account</button>
+              <button id="cancel-sign-in" type="button" hidden>Cancel</button>
+            </div>
+            <p id="sign-in-message" class="hint" role="status"></p>
+          </form>
+        </section>
+
+        <!-- Settings → Preferences: Organizations and Projects, as big tabs. -->
+        <section id="page-preferences" class="page" hidden>
+          <div class="big-tabs" role="tablist">
+            <button type="button" role="tab" data-tab="organizations" aria-selected="true"><span class="icon" data-icon="assignees"></span>Organizations</button>
+            <button type="button" role="tab" data-tab="projects" aria-selected="false"><span class="icon" data-icon="boards"></span>Projects</button>
+          </div>
+          <div id="tab-organizations">
+            <h3>Organizations</h3>
+            <p class="hint">Name each organization. Organizations with the same name share a group in your lists. This stays in Source Glance; nothing changes on GitHub or GitLab.</p>
+            <ul id="organization-list" class="organization-list"></ul>
+            <p id="no-organizations" class="hint" hidden>Sign in to see your organizations.</p>
+            <datalist id="organization-choices"></datalist>
+          </div>
+          <div id="tab-projects" hidden>
+            <div class="section-title">
+              <h3>Projects</h3>
+              <button type="button" id="projects-more" class="flat icon-button" aria-haspopup="true" aria-expanded="false" title="More" aria-label="More"><span class="icon" data-icon="more"></span></button>
+            </div>
+            <p class="hint">Repositories are projects of their own until you group them: rename a project, or drag a repository onto another.</p>
+            <div id="projects-reset" class="confirm" hidden>
+              <p><strong>Reset projects?</strong> This removes every project you made or renamed and puts moved repositories back. Each repository becomes a project of its own again, submodules rejoin their parent’s project, and projects from a platform stay. Organization names aren’t affected. You can’t undo this.</p>
+              <div class="row-buttons">
+                <button type="button" id="projects-reset-cancel">Cancel</button>
+                <button type="button" id="projects-reset-yes" class="danger">Reset projects</button>
+              </div>
+            </div>
+            <ul id="project-list" class="project-list"></ul>
+            <p id="projects-note" class="hint" hidden>Some accounts can’t read repository files, so submodules aren’t found. Drag them into a project, or sign in with a fine-grained token.</p>
+          </div>
+          <p id="settings-message" class="hint" role="status"></p>
+        </section>
+
+        <!-- Settings → Startup. -->
+        <section id="page-startup" class="page" hidden>
+          <h2 class="page-heading">Startup</h2>
+          <ul class="card-list">
+            <li><label><span class="who"><span>Start automatically</span><small>Show Source Glance in the menu bar when you log in</small></span>
+              <input id="start-at-login" class="switch" type="checkbox" role="switch"></label></li>
+            <li><label><span class="who"><span>Show in the Dock</span><small>A Dock icon while Source Glance runs, as well as the menu bar</small></span>
+              <input id="dock-icon" class="switch" type="checkbox" role="switch"></label></li>
+          </ul>
+          <p id="startup-message" class="hint" role="status"></p>
+        </section>
+
+        <!-- Settings → About. -->
+        <section id="page-about" class="page" hidden>
+          <div class="about-head">
+            <img class="about-icon" alt="">
+            <h2>Source Glance</h2>
+            <p class="hint" id="about-version"></p>
+            <p>Your GitHub and GitLab issues, pull requests and project boards, one glance away.</p>
+          </div>
+          <h3>Author</h3>
+          <ul class="card-list">
+            <li><button type="button" class="row link" data-link="author"><span class="icon" data-icon="assignees"></span>
+              <span class="who"><span id="about-author"></span><small id="about-author-login"></small></span><span class="icon" data-icon="external"></span></button></li>
+          </ul>
+          <h3>Get involved</h3>
+          <p class="hint">Source Glance is open source. Found a bug or have an idea? Report it, or fork the repository and send a pull request.</p>
+          <ul class="card-list">
+            <li><button type="button" class="row link" data-link="issues"><span class="icon" data-icon="comment"></span>
+              <span class="who"><span>Report an issue</span><small>Bugs, ideas and questions are all welcome</small></span><span class="icon" data-icon="external"></span></button></li>
+            <li><button type="button" class="row link" data-link="fork"><span class="icon" data-icon="pr"></span>
+              <span class="who"><span>Fork and contribute</span><small>Fork the repository, make your change and open a pull request</small></span><span class="icon" data-icon="external"></span></button></li>
+            <li><button type="button" class="row link" data-link="contributing"><span class="icon" data-icon="about"></span>
+              <span class="who"><span>Contributing guide</span><small>How to set up, test and send a change</small></span><span class="icon" data-icon="external"></span></button></li>
+          </ul>
+          <h3>Uninstall</h3>
+          <p class="hint">Moves Source Glance to the Trash and quits. Your GitHub and GitLab accounts aren't touched.</p>
+          <div class="card form">
+            <label class="inline"><input id="remove-data" type="checkbox"> Also remove my sign-ins from the Keychain, and my settings</label>
+            <div class="row-buttons">
+              <button type="button" id="uninstall" class="danger">Uninstall Source Glance…</button>
+            </div>
+            <div id="uninstall-confirm" class="confirm" hidden>
+              <p id="uninstall-question"></p>
+              <div class="row-buttons">
+                <button type="button" id="uninstall-cancel">Cancel</button>
+                <button type="button" id="uninstall-yes" class="danger">Uninstall</button>
+              </div>
+            </div>
+            <p id="uninstall-message" class="hint" role="status"></p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <aside id="access-panel" class="side-panel" aria-labelledby="access-title" hidden>
+    <div class="side-panel-header">
+      <div class="who"><h2 id="access-title"></h2><small id="access-subtitle"></small></div>
+      <button type="button" id="access-close" class="flat icon-button" aria-label="Close" title="Close"><span class="icon" data-icon="close"></span></button>
+    </div>
+    <div id="access-body" class="side-panel-body"></div>
+  </aside>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

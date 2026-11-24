@@ -7,6 +7,46 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Source Glance for macOS** (Phase 0 and 1 of [ADR 0006](docs/adr/0006-cross-platform-desktop-app-with-tauri.md),
+  [#10](https://github.com/omer-gh/sourceglance/issues/10)): a menu-bar app built with Tauri
+  from the same `src/shared` code as the extension. Sign in to github.com, gitlab.com or a
+  self-hosted instance (browser sign-in or a personal access token); sign-ins are kept in
+  the login Keychain. The menu bar shows your Issues, Pull requests and Projects, each with
+  its count in a blue pill, as separate items (the default, like Ubuntu) or as one item with
+  a tab per list, which suits MacBooks with a notch. The popovers look and work like the Ubuntu
+  top-bar menus: one flat list across all accounts grouped by Group by, each item's actions in
+  a menu beside the list, and Glance, Tasks, Settings and About in the Source Glance menu.
+  **Show Source Glance in the menu bar** (Settings) works like Ubuntu's Top bar switch: off
+  takes it out of the menu bar and stops checking in the background while the window keeps
+  working; opening Source Glance again turns it back on. **Group by** and **Organizations**
+  (Settings) work as on Ubuntu: name each organization (the same name on GitHub and GitLab
+  makes one group), with the platform's own name when you haven't set one. **Projects**
+  group repositories by name: rename one in place, drag a repository onto another project,
+  disband or reset them, and submodules join their parent's project when the sign-in can read
+  repository files (the GitHub App sign-in never asks). **Limit repositories & boards**, on
+  each GitHub account, links to GitHub to change what the sign-in can reach, picks which
+  github.com repositories the lists show (and adds public ones), and hides the project boards
+  you don't follow from the popovers, the window and the menu-bar counts. The window is laid
+  out like Ubuntu's: Glance (Widgets, System Tray), Tasks (All Tasks, Issues, Pull requests,
+  Project Boards, with search), Settings (Accounts, Preferences, Startup, About) and Exit,
+  with the Accounts card in the header. Optional Dock icon and start at login.
+  Reaching a server on your local network asks for macOS's Local Network permission, and
+  says how to turn it on if it's off.
+- **A Setup wizard for macOS:** `Source-Glance-X.Y.Z.pkg` opens Apple's Installer and installs
+  Source Glance for you only, in `~/Applications`, with no administrator password and no
+  scripts. **Settings → Uninstall Source Glance** removes it again, and can also remove your
+  sign-ins and settings. A `.dmg` is still built for anyone who'd rather drag the app in.
+  Both are unsigned for now: see [Installing on macOS](docs/installing-macos.md).
+
+### Changed
+
+- The account list logic (`accountRegistry.js`), the list loaders (`loader.js`,
+  `gitlabLoader.js`) and the cancellation check (`cancellation.js`) moved into `src/shared`
+  so the macOS app can share them, with the usual re-exports left in `src/lib`. No change for
+  the extension.
+
 ## [0.18.0] - 2026-11-22
 
 ### Changed

@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Events between the two windows, and dragging the main window by its header. The app's own commands are always allowed; no other core API, no shell, fs, http, opener or menu access from JavaScript.",
+  "windows": [
+    "main",
+    "popover"
+  ],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:event:allow-emit",
+    "core:window:allow-start-dragging"
+  ]
+}

@@ -1,0 +1,213 @@
+/* The menu-bar popover, drawn like the Ubuntu top-bar menus (GNOME Shell 46 with Yaru): colours
+   and spacing measured from Ubuntu 24.04 screenshots. The window is transparent, so the menu has
+   GNOME's rounded box and the item actions can open in a second box beside it. */
+:root {
+  --bg: #fafafa;
+  --fg: #3c3c3c;
+  --muted: #898989;
+  --border: #dedede;
+  --separator: rgb(0 0 0 / 0.12);
+  --hover: rgb(0 0 0 / 0.07);
+  --active: rgb(0 0 0 / 0.13);
+  --tab-checked: rgb(127 127 127 / 0.3);
+  --tab-hover: rgb(127 127 127 / 0.15);
+  /* Ubuntu's accent, for the switch. */
+  --accent: #e95420;
+  --focus: rgb(233 84 32 / 0.5);
+  color-scheme: light dark;
+  font: 14px/1.25 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1d1d;
+    --fg: #f5f5f5;
+    --muted: #868686;
+    --border: #3e3e3e;
+    --separator: rgb(255 255 255 / 0.12);
+    --hover: rgb(255 255 255 / 0.09);
+    --active: rgb(255 255 255 / 0.16);
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  background: transparent;
+  color: var(--fg);
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+#wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.menu-box {
+  flex: none;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  overflow: hidden;
+}
+
+#box { max-height: 100vh; overflow-y: auto; scrollbar-width: none; }
+#box::-webkit-scrollbar { display: none; }
+
+/* Rows: one 36 px line, text 12 px in from the hover area (18 px from the menu's edge). */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.row:hover:not(:disabled), .row:focus-visible { background: var(--hover); outline: none; }
+.row:active:not(:disabled) { background: var(--active); }
+.row:disabled { opacity: 0.5; }
+.row .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+
+.icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+.icon.blank { background: none; }
+
+/* An issue or PR: indented under its heading, with the arrow that opens its actions. */
+.row.item { padding-left: 25px; gap: 5px; }
+.row.item .icon:last-child { opacity: 0.9; }
+
+.group-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  margin: 0;
+  padding: 0 12px;
+  color: var(--muted);
+}
+
+.group-heading .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-heading .count, .count { font-weight: 700; font-variant-numeric: tabular-nums; }
+.group-heading.status { padding-left: 12px; font-size: 13px; }
+
+.row.board { font-weight: 700; font-size: 12.5px; }
+
+.message, .header {
+  margin: 0;
+  padding: 9px 12px;
+  color: var(--fg);
+  font-style: italic;
+  white-space: normal;
+}
+
+.header { font-style: normal; color: var(--muted); font-size: 12.5px; }
+
+.footer { font-size: 12.5px; min-height: 34px; }
+.footer .icon { width: 14px; height: 14px; }
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--separator);
+  margin: 9px 12px;
+}
+
+/* Start automatically: a GNOME switch in Ubuntu's orange. */
+.row.toggle { justify-content: space-between; }
+
+input.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  position: relative;
+  width: 46px;
+  height: 26px;
+  margin: 0;
+  border-radius: 13px;
+  background: var(--tab-checked);
+  transition: background 0.2s;
+}
+
+input.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  transition: left 0.2s;
+}
+
+input.switch:checked { background: var(--accent); }
+input.switch:checked::after { left: 23px; }
+input.switch:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* The Grouped layout's tab bar. */
+.tabs { display: flex; gap: 4px; padding: 4px 8px 6px; }
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.tab:hover, .tab:focus-visible { background: var(--tab-hover); outline: none; }
+.tab[aria-selected=true] { background: var(--tab-checked); }
+
+/* The actions beside the list, like the menu GNOME opens next to an item. */
+.menu-box.side { width: 260px; }
+.row[aria-expanded=true] { background: var(--hover); }
+
+/* Dialogs for the actions (comment, close, labels…), inside the menu box. */
+.panel { display: grid; gap: 8px; padding: 6px 12px 10px; }
+.panel h2 { margin: 0; font-size: 15px; }
+.panel-item { margin: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel textarea { font: inherit; width: 100%; resize: vertical; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: inherit; }
+.panel-buttons { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.panel-buttons button { font: inherit; padding: 5px 12px; border-radius: 8px; border: 0; background: var(--hover); color: inherit; }
+.panel-buttons .primary { background: var(--accent); color: #fff; }
+.picker { max-height: 260px; overflow-y: auto; display: grid; gap: 2px; }
+.pick { display: flex; gap: 8px; align-items: center; padding: 2px 0; }
+
+.toast {
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--separator);
+  font-size: 12.5px;
+}
